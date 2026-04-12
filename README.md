@@ -70,13 +70,17 @@ npm run dev:dashboard
 
 ## 📦 Deployment
 
-### Deploy Backend & Worker (Render.com)
+### Deploy Backend (Render.com)
+
+Backend + Worker combined in single free service:
 
 1. Push to GitHub
 2. Go to [Render.com](https://render.com)
-3. Create "Web Service" for backend
-4. Create "Background Worker" for worker
-5. Add environment variables
+3. Create "Web Service" from Blueprint
+4. Connect repository: `jaisdevansh/sync-dsa`
+5. Render will auto-detect `render.yaml`
+6. Add environment variables (see below)
+7. Deploy!
 
 ### Deploy Dashboard (Vercel)
 
@@ -85,14 +89,22 @@ cd apps/dashboard
 vercel --prod
 ```
 
-### Update Extension
+Or connect GitHub repo on Vercel dashboard.
 
-Edit `apps/extension/popup.js` and `background.js`:
+### Share Extension with Friends
 
-```javascript
-const API_BASE_URL = 'https://your-backend.onrender.com/api';
-const DASHBOARD_URL = 'https://your-dashboard.vercel.app/dashboard';
-```
+Extension is NOT published to Chrome Web Store. Users load it locally:
+
+**Option 1: Share GitHub Repo**
+- Send link: https://github.com/jaisdevansh/sync-dsa
+- They follow instructions in `INSTALL_EXTENSION.md`
+
+**Option 2: Share ZIP File**
+1. Zip the `apps/extension` folder
+2. Share via email/drive
+3. They extract and load in Chrome (`chrome://extensions/`)
+
+See `INSTALL_EXTENSION.md` for detailed user instructions.
 
 ## 🧪 Testing
 
