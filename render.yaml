@@ -1,0 +1,50 @@
+services:
+  # Backend API Server
+  - type: web
+    name: dsa-sync-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run start --workspace=apps/backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        value: "*"
+
+  # Background Worker
+  - type: worker
+    name: dsa-sync-worker
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run start:worker --workspace=apps/backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
