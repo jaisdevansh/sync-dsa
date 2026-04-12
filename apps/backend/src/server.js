@@ -39,12 +39,32 @@ await fastify.register(statsRoutes, { prefix: '/api/stats' });
 // Health check
 fastify.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
+// Keepalive endpoint (for cron jobs)
+fastify.get('/keepalive', async () => ({ 
+  status: 'alive', 
+  timestamp: new Date().toISOString(),
+  uptime: process.uptime()
+}));
+
 // Start server
 try {
   await fastify.listen({ port: config.port, host: '0.0.0.0' });
   logger.info(`🚀 Server running on port ${config.port}`);
   logger.info(`🔄 Worker running (processing submissions queue)`);
   logger.info(`📝 Environment: ${config.nodeEnv}`);
+  
+  // Self-ping to keep Render service alive (free tier sleeps after 15 min)
+  if (config.nodeEnv === 'production') {
+    const BACKEND_URL = process.env.BACKEND_URL || 'https://dsa-sync-backend.onrender.com';
+    setInterval(async () => {
+      try {
+        await fetch(`${BACKEND_URL}/keepalive`);
+        logger.info('⏰ Keepalive ping sent');
+      } catch (error) {
+        logger.error('⏰ Keepalive ping failed:', error.message);
+      }
+    }, 14 * 60 * 1000); // Every 14 minutes (before 15 min timeout)
+  }
 } catch (err) {
   logger.error('Failed to start server:', err);
   process.exit(1);

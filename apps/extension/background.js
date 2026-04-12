@@ -5,26 +5,18 @@ const API_BASE_URL = 'https://dsa-sync-backend.onrender.com/api';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
-// Keep service worker alive
-let keepAliveInterval;
+// Keep service worker alive with alarms (more reliable than setInterval)
+chrome.alarms.create('keepalive', { periodInMinutes: 0.5 }); // Every 30 seconds
 
-function startKeepAlive() {
-  // Ping every 20 seconds to keep worker alive
-  keepAliveInterval = setInterval(() => {
-    chrome.runtime.getPlatformInfo(() => {
-      // Just a dummy call to keep worker active
-    });
-  }, 20000);
-}
-
-function stopKeepAlive() {
-  if (keepAliveInterval) {
-    clearInterval(keepAliveInterval);
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'keepalive') {
+    console.log('[DSA Sync] Service worker keepalive ping');
+    // Ping backend to keep it alive too
+    fetch(`${API_BASE_URL.replace('/api', '')}/keepalive`)
+      .then(() => console.log('[DSA Sync] Backend keepalive successful'))
+      .catch(() => {}); // Ignore errors
   }
-}
-
-// Start keepalive when service worker starts
-startKeepAlive();
+});
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
