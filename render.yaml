@@ -2,12 +2,11 @@ services:
   # Backend API Server
   - type: web
     name: dsa-sync-backend
-    env: node
+    runtime: node
     region: oregon
     plan: free
     buildCommand: npm install
     startCommand: npm run start:backend
-    nodeVersion: 20.11.0
     envVars:
       - key: NODE_ENV
         value: production
@@ -31,12 +30,11 @@ services:
   # Background Worker
   - type: worker
     name: dsa-sync-worker
-    env: node
+    runtime: node
     region: oregon
     plan: free
     buildCommand: npm install
     startCommand: npm run start:worker
-    nodeVersion: 20.11.0
     envVars:
       - key: NODE_ENV
         value: production
