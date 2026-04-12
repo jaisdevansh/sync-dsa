@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GitHub Connected - DSA Auto Sync</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0B0C0F 0%, #111318 100%);
+      color: #ffffff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Subtle noise texture */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      max-width: 480px;
+      width: 90%;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 40px 32px 32px 32px;
+      border-radius: 20px;
+      text-align: center;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Success icon with glow */
+    .success-icon-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 24px;
+    }
+
+    .success-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle, rgba(34, 197, 94, 0.2) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    .success-icon {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      background: rgba(34, 197, 94, 0.12);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      animation: scaleIn 0.5s ease-out 0.2s both;
+      box-shadow: 0 0 30px rgba(34, 197, 94, 0.2);
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0); }
+      to { transform: scale(1); }
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #FFFFFF;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #9CA3AF;
+      margin-bottom: 24px;
+    }
+
+    /* Username badge */
+    .username-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 8px 12px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #E5E7EB;
+    }
+
+    .github-icon {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+      opacity: 0.8;
+    }
+
+    /* Token container */
+    .token-container {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .token-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .token-label {
+      font-size: 11px;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    .token-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .token-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #9CA3AF;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 500;
+      transition: all 150ms ease;
+      font-family: inherit;
+    }
+
+    .token-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #E5E7EB;
+    }
+
+    .token-btn:active {
+      transform: scale(0.95);
+    }
+
+    .token-btn.success {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+    }
+
+    .token-text {
+      font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      color: #9CA3AF;
+      word-break: break-all;
+      line-height: 1.6;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .token-text.masked {
+      letter-spacing: 2px;
+      font-size: 16px;
+    }
+
+    /* Info text */
+    .info-text {
+      font-size: 12px;
+      color: #6B7280;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .countdown {
+      font-weight: 600;
+      color: #9CA3AF;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="success-icon-wrapper">
+        <div class="success-glow"></div>
+        <div class="success-icon">✓</div>
+      </div>
+      
+      <h1>GitHub Connected</h1>
+      <p class="subtitle">Your account is now securely linked</p>
+      
+      <div class="username-badge">
+        <svg class="github-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        {{USERNAME}}
+      </div>
+
+      <div class="token-container">
+        <div class="token-header">
+          <div class="token-label">Access Token</div>
+          <div class="token-actions">
+            <button class="token-btn" id="toggleBtn" onclick="toggleToken()">Show</button>
+            <button class="token-btn" id="copyBtn" onclick="copyToken()">Copy</button>
+          </div>
+        </div>
+        <div class="token-text masked" id="tokenText">••••••••••••••••••••••••••••••••</div>
+        <div class="token-text" id="tokenReal" style="display: none;">{{JWT}}</div>
+      </div>
+
+      <p class="info-text">
+        Token saved! You can close this window.<br>
+        <span style="font-size: 11px; color: #6B7280;">Auto-closing in <span class="countdown" id="countdown">10</span>s</span>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const realToken = "{{JWT}}";
+    const username = "{{USERNAME}}";
+    let isVisible = false;
+    let countdown = 10;
+
+    // Send JWT to extension popup (opener window)
+    function notifyExtension() {
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage({
+            type: 'DSA_SYNC_AUTH_SUCCESS',
+            jwt: realToken,
+            username: username
+          }, '*');
+          console.log('Sent JWT to extension');
+        }
+      } catch (e) {
+        console.error('Failed to notify extension:', e);
+      }
+    }
+
+    // Call on load
+    setTimeout(notifyExtension, 500);
+
+    function toggleToken() {
+      isVisible = !isVisible;
+      const maskedEl = document.getElementById('tokenText');
+      const realEl = document.getElementById('tokenReal');
+      const btn = document.getElementById('toggleBtn');
+      
+      if (isVisible) {
+        maskedEl.style.display = 'none';
+        realEl.style.display = 'block';
+        btn.textContent = 'Hide';
+      } else {
+        maskedEl.style.display = 'block';
+        realEl.style.display = 'none';
+        btn.textContent = 'Show';
+      }
+    }
+
+    function copyToken() {
+      navigator.clipboard.writeText(realToken).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('success');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('success');
+        }, 2000);
+      });
+    }
+
+    // Countdown timer
+    const countdownEl = document.getElementById('countdown');
+    const interval = setInterval(() => {
+      countdown--;
+      countdownEl.textContent = countdown;
+      if (countdown === 0) {
+        clearInterval(interval);
+        window.close();
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

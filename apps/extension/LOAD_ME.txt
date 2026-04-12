@@ -1,0 +1,27 @@
+
+╔════════════════════════════════════════════════════════════╗
+║                                                            ║
+║   ✅ THIS IS THE CORRECT FOLDER TO LOAD IN CHROME!       ║
+║                                                            ║
+║   You should see this file (LOAD_ME.txt) along with:      ║
+║   - manifest.json                                          ║
+║   - background.js                                          ║
+║   - popup.html                                             ║
+║   - icons folder                                           ║
+║                                                            ║
+║   If you see these files, click "Select Folder"!          ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
+
+PATH: C:\Users\devan\OneDrive\Desktop\sync\apps\extension
+
+STEPS:
+1. Chrome → chrome://extensions/
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Navigate to the folder containing THIS file
+5. Click "Select Folder"
+
+DO NOT select the "sync" folder!
+DO NOT select the "apps" folder!
+SELECT THIS "extension" folder!
