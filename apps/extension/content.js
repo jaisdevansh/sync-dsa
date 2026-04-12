@@ -234,40 +234,40 @@
   function handleSubmission() {
     clearTimeout(debounceTimer);
     
-    debounceTimer = setTimeout(async () => {
+    debounceTimer = setTimeout(() => {
       const data = extractSubmissionData();
       
       if (data) {
         console.log('[DSA Sync] Submission detected:', data.title);
         
-        // Wake up service worker first
-        try {
-          await chrome.runtime.sendMessage({ type: 'PING' });
-          console.log('[DSA Sync] Service worker is alive');
-        } catch (error) {
-          console.warn('[DSA Sync] Service worker wake-up failed:', error);
-        }
-        
-        // Small delay to ensure worker is ready
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Send to background script
-        chrome.runtime.sendMessage(
-          { type: 'SUBMISSION_DETECTED', data },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              console.error('[DSA Sync] Message error:', chrome.runtime.lastError);
-              showToast('⚠️ Extension error - try reloading', 'error');
-              return;
-            }
-            
-            if (response?.success) {
-              showToast('✅ Synced to GitHub!', 'success');
-            } else {
-              showToast('⚠️ Sync failed', 'error');
-            }
+        // Wake up service worker first, then send submission
+        chrome.runtime.sendMessage({ type: 'PING' }, (pingResponse) => {
+          if (chrome.runtime.lastError) {
+            console.warn('[DSA Sync] Service worker wake-up failed:', chrome.runtime.lastError);
+          } else {
+            console.log('[DSA Sync] Service worker is alive');
           }
-        );
+          
+          // Send submission (even if ping failed, try anyway)
+          setTimeout(() => {
+            chrome.runtime.sendMessage(
+              { type: 'SUBMISSION_DETECTED', data },
+              (response) => {
+                if (chrome.runtime.lastError) {
+                  console.error('[DSA Sync] Message error:', chrome.runtime.lastError);
+                  showToast('⚠️ Extension error - try reloading', 'error');
+                  return;
+                }
+                
+                if (response?.success) {
+                  showToast('✅ Synced to GitHub!', 'success');
+                } else {
+                  showToast('⚠️ Sync failed', 'error');
+                }
+              }
+            );
+          }, 100);
+        });
       }
     }, DEBOUNCE_DELAY);
   }
