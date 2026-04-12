@@ -1,5 +1,5 @@
 services:
-  # Backend API Server + Worker (Combined for Free Tier)
+  # Backend API Server
   - type: web
     name: dsa-sync-backend
     runtime: node
@@ -28,3 +28,41 @@ services:
         sync: false
       - key: CORS_ORIGIN
         value: "*"
+
+  # Background Worker Service
+  - type: worker
+    name: dsa-sync-worker
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run start:worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+
+  # Cron job to keep services alive (runs every minute, pings multiple times)
+  - type: cron
+    name: keep-services-alive
+    runtime: node
+    region: oregon
+    schedule: "* * * * *"
+    buildCommand: echo "No build needed"
+    startCommand: |
+      for i in 1 2; do
+        curl -f https://dsa-sync-backend.onrender.com/health || echo "Backend ping failed"
+        sleep 25
+      done
+    envVars:
+      - key: NODE_ENV
+        value: production

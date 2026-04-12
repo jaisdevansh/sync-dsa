@@ -56,14 +56,18 @@ try {
   // Self-ping to keep Render service alive (free tier sleeps after 15 min)
   if (config.nodeEnv === 'production') {
     const BACKEND_URL = process.env.BACKEND_URL || 'https://dsa-sync-backend.onrender.com';
+    
+    // Ping every 25 seconds to keep service always active
     setInterval(async () => {
       try {
         await fetch(`${BACKEND_URL}/keepalive`);
-        logger.info('⏰ Keepalive ping sent');
+        logger.info('⏰ Keepalive ping sent (25s interval)');
       } catch (error) {
         logger.error('⏰ Keepalive ping failed:', error.message);
       }
-    }, 14 * 60 * 1000); // Every 14 minutes (before 15 min timeout)
+    }, 25 * 1000); // Every 25 seconds
+    
+    logger.info('⏰ Auto-keepalive enabled (25 second interval)');
   }
 } catch (err) {
   logger.error('Failed to start server:', err);
