@@ -5,6 +5,7 @@ import { submissionQueue } from '../services/queueService.js';
 import { updateStats } from '../services/statsService.js';
 import { decrypt } from '../utils/crypto.js';
 import { and, eq } from 'drizzle-orm';
+import { logger } from '../utils/logger.js';
 
 const db = createDb(config.databaseUrl);
 
@@ -19,6 +20,8 @@ const submissionSchema = z.object({
 export async function handleSubmission(request, reply) {
   const userId = request.user.userId;
   const submission = submissionSchema.parse(request.body);
+
+  logger.info(`📥 Submission received: ${submission.title} from user ${userId}`);
 
   // Get user and check for duplicate
   const [user, existingSubmission] = await Promise.all([
@@ -36,11 +39,13 @@ export async function handleSubmission(request, reply) {
   ]);
 
   if (!user) {
+    logger.error(`❌ User ${userId} not found`);
     return reply.status(404).send({ error: 'User not found' });
   }
 
   // Skip if already submitted
   if (existingSubmission) {
+    logger.info(`⏭️ Skipping duplicate: ${submission.title}`);
     return reply.status(200).send({
       success: true,
       message: 'Already submitted',
@@ -66,6 +71,8 @@ export async function handleSubmission(request, reply) {
     })
     .returning();
 
+  logger.info(`💾 Submission saved to DB: ${newSubmission.id}`);
+
   // Update stats
   await updateStats(userId, submission.platform, submission.difficulty);
 
@@ -78,6 +85,8 @@ export async function handleSubmission(request, reply) {
     repoName: user.repoName,
     githubUsername: user.githubUsername,
   });
+
+  logger.info(`📤 Job queued for GitHub push: ${submission.title}`);
 
   return reply.status(200).send({
     success: true,
