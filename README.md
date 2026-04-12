@@ -1,23 +1,27 @@
-# DSA Auto Sync
+# 🚀 DSA Auto Sync
 
-Production-grade system that automatically syncs your DSA solutions to GitHub.
+Automatically sync your LeetCode & GeeksforGeeks solutions to GitHub with a Chrome extension.
 
-## Architecture
+## ✨ Features
 
-- **Extension**: Vanilla JS (Manifest v3) - Detects submissions on LeetCode, GFG, CodingNinjas
-- **Backend**: Node.js + Fastify - Ultra-fast API with async queue processing
-- **Database**: Neon PostgreSQL + Drizzle ORM
-- **Queue**: BullMQ + Redis (Upstash)
-- **Dashboard**: Next.js - View stats after 5 solves
+- 🔄 Auto-detect submissions on LeetCode & GeeksforGeeks
+- 📤 Sync code to GitHub automatically
+- 📊 Track progress with stats dashboard
+- 🔥 Maintain coding streak
+- 🎯 Unlock dashboard after 5 problems
 
-## Performance
+## 🏗️ Architecture
 
-- API response: < 200ms
-- GitHub push: Async background job
-- No blocking operations
-- Debounced duplicate submissions
+```
+├── apps/
+│   ├── backend/          # Fastify API server
+│   ├── dashboard/        # Next.js dashboard
+│   └── extension/        # Chrome extension
+├── packages/
+│   └── database/         # Drizzle ORM schema
+```
 
-## Setup
+## 🚀 Quick Start
 
 ### 1. Install Dependencies
 
@@ -25,124 +29,146 @@ Production-grade system that automatically syncs your DSA solutions to GitHub.
 npm install
 ```
 
-### 2. Configure Environment
+### 2. Setup Environment
 
-Copy `.env.example` to `.env` and fill in:
+Copy `.env.template` to `.env` and fill in:
 
-```bash
-cp .env.example .env
-```
-
-Generate encryption key:
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```env
+DATABASE_URL=your_neon_postgres_url
+REDIS_URL=your_upstash_redis_url
+GITHUB_CLIENT_ID=your_github_oauth_id
+GITHUB_CLIENT_SECRET=your_github_oauth_secret
+JWT_SECRET=random_32_char_string
+ENCRYPTION_KEY=random_64_char_hex
 ```
 
 ### 3. Setup Database
 
 ```bash
-npm run db:generate
 npm run db:push
 ```
 
 ### 4. Start Services
 
-Backend:
 ```bash
+# Terminal 1: Backend
 npm run dev:backend
-```
 
-Dashboard:
-```bash
+# Terminal 2: Worker
+npm run dev:worker
+
+# Terminal 3: Dashboard
 npm run dev:dashboard
 ```
 
-### 5. Setup GitHub OAuth (Extension)
+### 5. Load Extension
 
-**Important:** Load extension first to get Extension ID!
+1. Go to `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select `apps/extension` folder
 
-1. **Load Extension**:
-   - Chrome → `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked" → Select `apps/extension`
-   - Copy Extension ID (e.g., `abcdefghijklmnopqrstuvwxyz123456`)
+## 📦 Deployment
 
-2. **Create GitHub OAuth App**:
-   - Go to https://github.com/settings/developers
-   - Click "New OAuth App"
-   - Fill in:
-     - Name: `DSA Auto Sync`
-     - Homepage: `https://github.com/YOUR_USERNAME/dsa-auto-sync`
-     - Callback: `https://YOUR_EXTENSION_ID.chromiumapp.org/oauth2`
-   - Copy Client ID and Client Secret
+### Deploy Backend & Worker (Render.com)
 
-3. **Update Extension**:
-   - Open `apps/extension/popup.js`
-   - Line 2: `const GITHUB_CLIENT_ID = 'YOUR_CLIENT_ID';`
+1. Push to GitHub
+2. Go to [Render.com](https://render.com)
+3. Create "Web Service" for backend
+4. Create "Background Worker" for worker
+5. Add environment variables
 
-4. **Update Backend .env**:
-   - Add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`
+### Deploy Dashboard (Vercel)
 
-5. **Reload Extension**:
-   - `chrome://extensions/` → Click reload icon
-   - Click extension icon → Login with GitHub
-
-📖 Detailed guide: `apps/extension/GITHUB_OAUTH_SETUP.md`
-
-### 6. Load Extension
-
-### 6. Test It!
-
-1. Go to LeetCode/GFG/CodingNinjas
-2. Solve any problem
-3. Submit and get "Accepted"
-4. Watch for toast: "✅ Synced to GitHub!"
-5. Check your GitHub repo: `github.com/YOUR_USERNAME/dsa-solutions`
-
-## How It Works
-
-1. Solve problem on LeetCode/GFG/CodingNinjas
-2. Extension detects "Accepted" status
-3. Extracts code, title, difficulty, language
-4. Sends to backend API (< 200ms response)
-5. Backend queues GitHub push job
-6. Worker processes job in background
-7. Stats updated in database
-8. Dashboard unlocks after 5 solves
-
-## Error Handling
-
-- Extension: Retry with exponential backoff
-- Backend: Input validation with Zod
-- GitHub: 3 retries, handles rate limits & file conflicts
-- Queue: Automatic retry on failure
-- Database: Safe fallbacks, never crashes
-
-## Tech Stack
-
-- Fastify (backend)
-- BullMQ (queue)
-- Drizzle ORM (database)
-- Next.js (dashboard)
-- Vanilla JS (extension)
-
-## Project Structure
-
-```
-apps/
-  backend/       # Fastify API server
-  dashboard/     # Next.js dashboard
-  extension/     # Chrome extension
-packages/
-  database/      # Drizzle schema & migrations
+```bash
+cd apps/dashboard
+vercel --prod
 ```
 
-## API Endpoints
+### Update Extension
 
-- `POST /api/auth/github/callback` - OAuth callback
-- `POST /api/submission/submit` - Submit solution
-- `GET /api/stats/me` - Get user stats
+Edit `apps/extension/popup.js` and `background.js`:
 
-## License
+```javascript
+const API_BASE_URL = 'https://your-backend.onrender.com/api';
+const DASHBOARD_URL = 'https://your-dashboard.vercel.app/dashboard';
+```
+
+## 🧪 Testing
+
+1. Go to [LeetCode Two Sum](https://leetcode.com/problems/two-sum/)
+2. Submit a solution
+3. Check console: `[DSA Sync] Submission detected`
+4. Check GitHub repo for new file
+5. Check extension for updated stats
+
+## 📚 Tech Stack
+
+- **Backend:** Fastify, BullMQ, Drizzle ORM
+- **Database:** PostgreSQL (Neon)
+- **Cache/Queue:** Redis (Upstash)
+- **Dashboard:** Next.js, Tailwind CSS
+- **Extension:** Vanilla JavaScript (Manifest v3)
+
+## 🔐 Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://...` |
+| `REDIS_URL` | Redis connection string | `rediss://...` |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App ID | `Ov23li...` |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth Secret | `436121...` |
+| `JWT_SECRET` | JWT signing secret | `random32chars` |
+| `ENCRYPTION_KEY` | Token encryption key | `random64hex` |
+
+## 📖 Documentation
+
+- **ARCHITECTURE.md** - System architecture details
+- **FEATURES.md** - Feature specifications
+- **DEPLOY_WITHOUT_EXTENSION.md** - Deployment guide
+
+## 🐛 Troubleshooting
+
+### Extension not detecting submissions
+
+1. Check console (F12) for `[DSA Sync] Initialized on leetcode`
+2. Reload extension: `chrome://extensions/` → Refresh
+3. Hard reload page: Ctrl+Shift+R
+
+### Backend not receiving submissions
+
+1. Check backend logs for errors
+2. Verify JWT token is saved: Check extension storage
+3. Test backend health: `curl http://localhost:3000/health`
+
+### Worker not processing jobs
+
+1. Check worker logs for Redis connection
+2. Verify REDIS_URL format: `rediss://` (double 's')
+3. Check GitHub token is valid
+
+## 💰 Cost (Free Tier)
+
+- Backend (Render): $0
+- Worker (Render): $0
+- Dashboard (Vercel): $0
+- Database (Neon): $0
+- Redis (Upstash): $0
+
+**Total: $0/month** 🎉
+
+## 📝 License
 
 MIT
+
+## 🤝 Contributing
+
+Pull requests are welcome!
+
+## 📧 Support
+
+For issues, please open a GitHub issue.
+
+---
+
+**Made with ❤️ for DSA enthusiasts**
