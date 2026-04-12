@@ -234,11 +234,22 @@
   function handleSubmission() {
     clearTimeout(debounceTimer);
     
-    debounceTimer = setTimeout(() => {
+    debounceTimer = setTimeout(async () => {
       const data = extractSubmissionData();
       
       if (data) {
         console.log('[DSA Sync] Submission detected:', data.title);
+        
+        // Wake up service worker first
+        try {
+          await chrome.runtime.sendMessage({ type: 'PING' });
+          console.log('[DSA Sync] Service worker is alive');
+        } catch (error) {
+          console.warn('[DSA Sync] Service worker wake-up failed:', error);
+        }
+        
+        // Small delay to ensure worker is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Send to background script
         chrome.runtime.sendMessage(
@@ -246,6 +257,7 @@
           (response) => {
             if (chrome.runtime.lastError) {
               console.error('[DSA Sync] Message error:', chrome.runtime.lastError);
+              showToast('⚠️ Extension error - try reloading', 'error');
               return;
             }
             
