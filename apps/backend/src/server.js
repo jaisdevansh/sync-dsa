@@ -9,6 +9,9 @@ import { errorHandler } from './utils/error-handler.js';
 import { rateLimit } from './utils/rate-limit.js';
 import { logger } from './utils/logger.js';
 
+// Import worker to start it alongside the server
+import './services/workerService.js';
+
 const fastify = Fastify({
   logger: config.nodeEnv === 'development',
   requestIdLogLabel: 'reqId',
@@ -40,6 +43,7 @@ fastify.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOS
 try {
   await fastify.listen({ port: config.port, host: '0.0.0.0' });
   logger.info(`🚀 Server running on port ${config.port}`);
+  logger.info(`🔄 Worker running (processing submissions queue)`);
   logger.info(`📝 Environment: ${config.nodeEnv}`);
 } catch (err) {
   logger.error('Failed to start server:', err);
