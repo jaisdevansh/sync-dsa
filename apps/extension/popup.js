@@ -1,8 +1,8 @@
 // Popup script - UI logic
 'use strict';
 
-const API_BASE_URL = 'http://localhost:3000/api';
-const DASHBOARD_URL = 'http://localhost:3001/dashboard';
+const API_BASE_URL = 'https://dsa-sync-backend.onrender.com/api';
+const DASHBOARD_URL = 'https://sync-dsa-dashboard.vercel.app/dashboard';
 const GITHUB_CLIENT_ID = 'Ov23lixTaTeICwY4oD9L'; // ✅ Configured!
 
 // DOM elements
@@ -98,14 +98,14 @@ function displayStats(stats) {
 elements.connectBtn.addEventListener('click', async () => {
   try {
     // Open GitHub OAuth in new tab
-    const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=http://localhost:3000/api/auth/github/callback`;
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=https://dsa-sync-backend.onrender.com/api/auth/github/callback`;
     
     const authWindow = window.open(authUrl, 'GitHub Auth', 'width=600,height=700');
     
     // Listen for messages from the auth window
     const messageListener = async (event) => {
       // Security check
-      if (event.origin !== 'http://localhost:3000') return;
+      if (event.origin !== 'https://dsa-sync-backend.onrender.com') return;
       
       if (event.data.type === 'DSA_SYNC_AUTH_SUCCESS') {
         window.removeEventListener('message', messageListener);

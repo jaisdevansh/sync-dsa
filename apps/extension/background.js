@@ -1,7 +1,7 @@
 // Background service worker - Handles API communication
 'use strict';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://dsa-sync-backend.onrender.com/api';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
