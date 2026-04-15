@@ -24,7 +24,10 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://practice.geeksforgeeks.org/problems/*"],
+      "matches": [
+        "https://practice.geeksforgeeks.org/problems/*",
+        "https://www.geeksforgeeks.org/problems/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

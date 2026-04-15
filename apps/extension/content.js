@@ -4,10 +4,13 @@
 
   // State management
   let lastSubmission = null;
+  let lastSubmissionTime = 0;
   let debounceTimer = null;
   let observer = null;
+  let isProcessing = false; // Flag to prevent concurrent processing
   
   const DEBOUNCE_DELAY = 2000; // 2 seconds
+  const DUPLICATE_WINDOW = 30000; // 30 seconds - ignore duplicates within this window
   const PLATFORM = detectPlatform();
 
   // Platform detection
@@ -148,18 +151,47 @@
 
     gfg: {
       isAccepted: () => {
-        const result = document.querySelector('.problems_submit_result__success');
-        return !!result;
+        // Multiple ways to detect success on GFG
+        const successResult = document.querySelector('.problems_submit_result__success');
+        if (successResult) return true;
+        
+        // Check for "Correct Answer" text
+        const pageText = document.body.textContent.toLowerCase();
+        if (pageText.includes('correct answer') || pageText.includes('all test cases passed')) return true;
+        
+        // Check for success icon/badge
+        const successIcon = document.querySelector('[class*="success"]');
+        if (successIcon && successIcon.textContent.toLowerCase().includes('correct')) return true;
+        
+        return false;
       },
       
       getTitle: () => {
-        const titleEl = document.querySelector('.problems_header_content__title__text') ||
-                       document.querySelector('h1');
-        return titleEl ? titleEl.textContent.trim() : null;
+        // Try multiple selectors for title
+        let titleEl = document.querySelector('.problems_header_content__title__text');
+        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        
+        titleEl = document.querySelector('.problem-title');
+        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        
+        titleEl = document.querySelector('h1');
+        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        
+        // Fallback: Get from URL
+        const match = window.location.pathname.match(/\/problems\/([^\/]+)/);
+        if (match) {
+          return match[1]
+            .split('-')
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ');
+        }
+        
+        return null;
       },
       
       getDifficulty: () => {
-        const diffEl = document.querySelector('.problems_header_content__title__difficulty');
+        const diffEl = document.querySelector('.problems_header_content__title__difficulty') ||
+                       document.querySelector('[class*="difficulty"]');
         if (!diffEl) return 'medium';
         const text = diffEl.textContent.toLowerCase();
         if (text.includes('easy')) return 'easy';
@@ -168,19 +200,55 @@
       },
       
       getCode: () => {
-        const lines = document.querySelectorAll('.ace_line');
-        if (!lines.length) return null;
-        return Array.from(lines)
-          .map(line => line.textContent)
-          .join('\n')
-          .trim();
+        // Try Ace editor
+        let lines = document.querySelectorAll('.ace_line');
+        if (lines.length > 0) {
+          const code = Array.from(lines)
+            .map(line => line.textContent)
+            .join('\n')
+            .trim();
+          if (code.length > 10) return code;
+        }
+        
+        // Try Monaco editor
+        lines = document.querySelectorAll('.view-line');
+        if (lines.length > 0) {
+          const code = Array.from(lines)
+            .map(line => line.textContent)
+            .join('\n')
+            .trim();
+          if (code.length > 10) return code;
+        }
+        
+        // Try textarea
+        const textarea = document.querySelector('textarea');
+        if (textarea && textarea.value.trim().length > 10) return textarea.value.trim();
+        
+        console.warn('[DSA Sync] Could not extract code from GFG editor');
+        return null;
       },
       
       getLanguage: () => {
-        const langEl = document.querySelector('.problems_header_language__dropdown');
-        if (!langEl) return 'cpp';
-        const lang = langEl.textContent.trim().toLowerCase();
-        return lang || 'cpp';
+        // Try language dropdown
+        let langEl = document.querySelector('.problems_header_language__dropdown');
+        if (langEl && langEl.textContent.trim()) {
+          return langEl.textContent.trim().toLowerCase();
+        }
+        
+        // Try button with language
+        langEl = document.querySelector('button[class*="language"]');
+        if (langEl && langEl.textContent.trim()) {
+          return langEl.textContent.trim().toLowerCase();
+        }
+        
+        // Try select dropdown
+        const selectEl = document.querySelector('select[class*="language"]');
+        if (selectEl && selectEl.value) {
+          return selectEl.value.toLowerCase();
+        }
+        
+        // Default to cpp for GFG
+        return 'cpp';
       },
     },
   };
@@ -236,16 +304,19 @@
         codeLength: data.code.length
       });
 
-      // Create unique key for deduplication
-      const submissionKey = `${title}-${code.length}-${PLATFORM}`;
+      // Create unique key for deduplication (using first 100 chars of code for better uniqueness)
+      const codeSnippet = code.substring(0, 100);
+      const submissionKey = `${title}-${codeSnippet}-${PLATFORM}`;
+      const currentTime = Date.now();
       
-      // Check if this is a duplicate
-      if (lastSubmission === submissionKey) {
-        console.log('[DSA Sync] Duplicate submission, skipping');
+      // Check if this is a duplicate within the time window
+      if (lastSubmission === submissionKey && (currentTime - lastSubmissionTime) < DUPLICATE_WINDOW) {
+        console.log('[DSA Sync] Duplicate submission detected (within 30s window), skipping');
         return null;
       }
 
       lastSubmission = submissionKey;
+      lastSubmissionTime = currentTime;
       return data;
 
     } catch (error) {
