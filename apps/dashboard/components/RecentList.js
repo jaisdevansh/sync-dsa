@@ -5,6 +5,13 @@ import { useState } from 'react';
 export default function RecentList({ submissions }) {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
+  // Debug logging
+  console.log('[RecentList] Submissions received:', submissions);
+  if (submissions.length > 0) {
+    console.log('[RecentList] First submission:', submissions[0]);
+    console.log('[RecentList] First submission code:', submissions[0].code);
+  }
+
   const difficultyColors = {
     easy: 'bg-green-900/30 text-green-400 border-green-800',
     medium: 'bg-yellow-900/30 text-yellow-400 border-yellow-800',

@@ -11,5 +11,9 @@ export async function getUserStats(jwt) {
     throw new Error('Failed to fetch stats');
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('[Dashboard] API Response:', data);
+  console.log('[Dashboard] Recent Submissions:', data.recentSubmissions);
+  
+  return data;
 }
