@@ -264,6 +264,13 @@
       if (data) {
         console.log('[DSA Sync] Submission detected:', data.title);
         
+        // Check if chrome.runtime is available
+        if (typeof chrome === 'undefined' || !chrome.runtime) {
+          console.error('[DSA Sync] Chrome runtime not available - extension may need reload');
+          showToast('⚠️ Extension error - please reload extension', 'error');
+          return;
+        }
+        
         // Wake up service worker first, then send submission
         chrome.runtime.sendMessage({ type: 'PING' }, (pingResponse) => {
           if (chrome.runtime.lastError) {
@@ -347,7 +354,14 @@
       return;
     }
 
+    // Check if chrome extension APIs are available
+    if (typeof chrome === 'undefined' || !chrome.runtime) {
+      console.error('[DSA Sync] Chrome extension APIs not available');
+      return;
+    }
+
     console.log(`[DSA Sync] Initialized on ${PLATFORM}`);
+    console.log('[DSA Sync] Extension ID:', chrome.runtime.id);
 
     // Observe DOM changes
     observer = new MutationObserver((mutations) => {
@@ -383,5 +397,15 @@
   } else {
     init();
   }
+
+  // Test connection on load
+  setTimeout(() => {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+      console.log('[DSA Sync] Extension connected successfully');
+      console.log('[DSA Sync] Extension ID:', chrome.runtime.id);
+    } else {
+      console.error('[DSA Sync] Extension not properly loaded - please reload extension');
+    }
+  }, 1000);
 
 })();
