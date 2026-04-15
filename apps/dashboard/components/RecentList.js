@@ -77,9 +77,28 @@ export default function RecentList({ submissions }) {
               {/* Code Preview - Expandable */}
               {expandedIndex === index && sub.code && (
                 <div className="border-t border-gray-800 bg-gray-950 p-4">
-                  <pre className="text-xs text-gray-300 overflow-x-auto">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500 font-medium">Code</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(sub.code);
+                      }}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre className="text-xs text-gray-300 overflow-x-auto bg-gray-900 p-3 rounded border border-gray-800">
                     <code>{sub.code}</code>
                   </pre>
+                </div>
+              )}
+              
+              {/* No code available message */}
+              {expandedIndex === index && !sub.code && (
+                <div className="border-t border-gray-800 bg-gray-950 p-4 text-center">
+                  <p className="text-xs text-gray-500">Code not available for this submission</p>
                 </div>
               )}
             </div>
