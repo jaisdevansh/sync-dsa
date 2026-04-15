@@ -43,6 +43,8 @@ export async function getUserStats(request, reply) {
       platform: s.platform,
       difficulty: s.difficulty,
       language: s.language,
+      code: s.code, // Include the code
+      filePath: s.filePath,
       createdAt: s.createdAt,
     })),
   };

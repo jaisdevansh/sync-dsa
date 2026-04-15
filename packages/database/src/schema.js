@@ -15,6 +15,7 @@ export const submissions = pgTable('submissions', {
   title: text('title').notNull(),
   difficulty: text('difficulty').notNull(),
   language: text('language').notNull(),
+  code: text('code').notNull(), // Store the actual code
   filePath: text('file_path').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

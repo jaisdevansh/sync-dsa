@@ -67,6 +67,7 @@ export async function handleSubmission(request, reply) {
       title: submission.title,
       difficulty: submission.difficulty,
       language: submission.language,
+      code: submission.code, // Save the code
       filePath,
     })
     .returning();
