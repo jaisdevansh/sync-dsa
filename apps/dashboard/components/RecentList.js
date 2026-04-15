@@ -5,13 +5,6 @@ import { useState } from 'react';
 export default function RecentList({ submissions }) {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
-  // Debug logging
-  console.log('[RecentList] Submissions received:', submissions);
-  if (submissions.length > 0) {
-    console.log('[RecentList] First submission:', submissions[0]);
-    console.log('[RecentList] First submission code:', submissions[0].code);
-  }
-
   const difficultyColors = {
     easy: 'bg-green-900/30 text-green-400 border-green-800',
     medium: 'bg-yellow-900/30 text-yellow-400 border-yellow-800',
@@ -91,13 +84,13 @@ export default function RecentList({ submissions }) {
                         e.stopPropagation();
                         navigator.clipboard.writeText(sub.code);
                       }}
-                      className="text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
                     >
-                      Copy
+                      📋 Copy
                     </button>
                   </div>
-                  <pre className="text-xs text-gray-300 overflow-x-auto bg-gray-900 p-3 rounded border border-gray-800">
-                    <code>{sub.code}</code>
+                  <pre className="text-xs text-gray-300 overflow-x-auto bg-gray-900 p-3 rounded border border-gray-800 max-h-96 overflow-y-auto">
+                    <code className="whitespace-pre">{sub.code}</code>
                   </pre>
                 </div>
               )}
