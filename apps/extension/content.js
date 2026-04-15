@@ -36,6 +36,26 @@
       },
       
       getTitle: () => {
+        // Try multiple selectors first
+        let titleEl = document.querySelector('[data-cy="question-title"]');
+        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        
+        titleEl = document.querySelector('a[href*="/problems/"]');
+        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        
+        titleEl = document.querySelector('.text-title-large');
+        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        
+        titleEl = document.querySelector('div[class*="title"]');
+        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        
+        // New selectors for updated LeetCode UI
+        titleEl = document.querySelector('div[class*="text-title"]');
+        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        
+        titleEl = document.querySelector('h1');
+        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        
         // Fallback: Get from URL (most reliable)
         const match = window.location.pathname.match(/\/problems\/([^\/]+)/);
         if (match) {
@@ -45,19 +65,6 @@
             .map(w => w.charAt(0).toUpperCase() + w.slice(1))
             .join(' ');
         }
-        
-        // Try multiple selectors as backup
-        let titleEl = document.querySelector('[data-cy="question-title"]');
-        if (titleEl) return titleEl.textContent.trim();
-        
-        titleEl = document.querySelector('a[href*="/problems/"]');
-        if (titleEl) return titleEl.textContent.trim();
-        
-        titleEl = document.querySelector('.text-title-large');
-        if (titleEl) return titleEl.textContent.trim();
-        
-        titleEl = document.querySelector('div[class*="title"]');
-        if (titleEl) return titleEl.textContent.trim();
         
         return null;
       },
@@ -83,28 +90,39 @@
       },
       
       getCode: () => {
-        // Try Monaco editor
+        // Try Monaco editor (most common)
         let lines = document.querySelectorAll('.view-line');
         if (lines.length > 0) {
-          return Array.from(lines)
+          const code = Array.from(lines)
             .map(line => line.textContent)
             .join('\n')
             .trim();
+          if (code.length > 10) return code; // Ensure it's not empty
         }
         
         // Try CodeMirror
         lines = document.querySelectorAll('.CodeMirror-line');
         if (lines.length > 0) {
-          return Array.from(lines)
+          const code = Array.from(lines)
             .map(line => line.textContent)
             .join('\n')
             .trim();
+          if (code.length > 10) return code;
         }
         
         // Try textarea
         const textarea = document.querySelector('textarea[class*="code"]');
-        if (textarea) return textarea.value;
+        if (textarea && textarea.value.trim().length > 10) return textarea.value.trim();
         
+        // Try any textarea
+        const anyTextarea = document.querySelector('textarea');
+        if (anyTextarea && anyTextarea.value.trim().length > 10) return anyTextarea.value.trim();
+        
+        // Try pre or code tags
+        const codeBlock = document.querySelector('pre code') || document.querySelector('pre');
+        if (codeBlock && codeBlock.textContent.trim().length > 10) return codeBlock.textContent.trim();
+        
+        console.warn('[DSA Sync] Could not extract code from editor');
         return null;
       },
       
@@ -186,14 +204,20 @@
       const title = extractor.getTitle();
       const code = extractor.getCode();
 
-      console.log('[DSA Sync] Extracted:', { 
-        title: title ? 'YES' : 'NO', 
-        code: code ? `${code.length} chars` : 'NO' 
+      console.log('[DSA Sync] Extraction attempt:', { 
+        platform: PLATFORM,
+        title: title || 'MISSING',
+        titleLength: title ? title.length : 0,
+        code: code ? `${code.length} chars` : 'MISSING',
+        url: window.location.href
       });
 
       // Validate required fields
       if (!title || !code) {
-        console.warn('[DSA Sync] Missing required fields', { title: !!title, code: !!code });
+        console.warn('[DSA Sync] Missing required fields - will retry on next DOM change', { 
+          title: !!title, 
+          code: !!code 
+        });
         return null;
       }
 
