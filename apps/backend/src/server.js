@@ -8,6 +8,7 @@ import { statsRoutes } from './routes/stats.js';
 import { errorHandler } from './utils/error-handler.js';
 import { rateLimit } from './utils/rate-limit.js';
 import { logger } from './utils/logger.js';
+import { runMigrations } from './db/migrate.js';
 
 // Import worker to start it alongside the server
 import './services/workerService.js';
@@ -16,6 +17,9 @@ const fastify = Fastify({
   logger: config.nodeEnv === 'development',
   requestIdLogLabel: 'reqId',
 });
+
+// Run migrations on startup
+await runMigrations();
 
 // Register plugins
 await fastify.register(cors, {
