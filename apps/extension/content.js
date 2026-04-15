@@ -374,40 +374,62 @@
         console.log('[DSA Sync] Submission detected:', data.title);
         
         // Check if chrome.runtime is available
-        if (typeof chrome === 'undefined' || !chrome.runtime) {
-          console.error('[DSA Sync] Chrome runtime not available - extension may need reload');
-          showToast('⚠️ Extension error - please reload extension', 'error');
+        if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
+          console.error('[DSA Sync] Chrome runtime not available - extension context invalidated');
+          showToast('⚠️ Please reload this page to sync', 'error');
           return;
         }
         
-        // Wake up service worker first, then send submission
-        chrome.runtime.sendMessage({ type: 'PING' }, (pingResponse) => {
-          if (chrome.runtime.lastError) {
-            console.warn('[DSA Sync] Service worker wake-up failed:', chrome.runtime.lastError);
-          } else {
-            console.log('[DSA Sync] Service worker is alive');
-          }
-          
-          // Send submission (even if ping failed, try anyway)
-          setTimeout(() => {
-            chrome.runtime.sendMessage(
-              { type: 'SUBMISSION_DETECTED', data },
-              (response) => {
-                if (chrome.runtime.lastError) {
-                  console.error('[DSA Sync] Message error:', chrome.runtime.lastError);
-                  showToast('⚠️ Extension error - try reloading', 'error');
-                  return;
-                }
-                
-                if (response?.success) {
-                  showToast('✅ Synced to GitHub!', 'success');
-                } else {
-                  showToast('⚠️ Sync failed', 'error');
-                }
+        // Wrap in try-catch to handle context invalidation
+        try {
+          // Wake up service worker first, then send submission
+          chrome.runtime.sendMessage({ type: 'PING' }, (pingResponse) => {
+            if (chrome.runtime.lastError) {
+              console.warn('[DSA Sync] Service worker wake-up failed:', chrome.runtime.lastError);
+              
+              // Check if it's context invalidation error
+              if (chrome.runtime.lastError.message?.includes('context invalidated')) {
+                showToast('⚠️ Please reload this page to sync', 'error');
+                return;
               }
-            );
-          }, 100);
-        });
+            } else {
+              console.log('[DSA Sync] Service worker is alive');
+            }
+            
+            // Send submission (even if ping failed, try anyway)
+            setTimeout(() => {
+              try {
+                chrome.runtime.sendMessage(
+                  { type: 'SUBMISSION_DETECTED', data },
+                  (response) => {
+                    if (chrome.runtime.lastError) {
+                      console.error('[DSA Sync] Message error:', chrome.runtime.lastError);
+                      
+                      if (chrome.runtime.lastError.message?.includes('context invalidated')) {
+                        showToast('⚠️ Please reload this page to sync', 'error');
+                      } else {
+                        showToast('⚠️ Extension error - try reloading', 'error');
+                      }
+                      return;
+                    }
+                    
+                    if (response?.success) {
+                      showToast('✅ Synced to GitHub!', 'success');
+                    } else {
+                      showToast('⚠️ Sync failed', 'error');
+                    }
+                  }
+                );
+              } catch (error) {
+                console.error('[DSA Sync] Send message error:', error);
+                showToast('⚠️ Please reload this page', 'error');
+              }
+            }, 100);
+          });
+        } catch (error) {
+          console.error('[DSA Sync] Runtime error:', error);
+          showToast('⚠️ Please reload this page', 'error');
+        }
       }
     }, DEBOUNCE_DELAY);
   }
