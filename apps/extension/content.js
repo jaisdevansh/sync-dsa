@@ -342,19 +342,22 @@
         codeLength: data.code.length
       });
 
-      // Create unique key for deduplication (using first 100 chars of code for better uniqueness)
-      const codeSnippet = code.substring(0, 100);
-      const submissionKey = `${title}-${codeSnippet}-${PLATFORM}`;
+      // Create unique key for deduplication
+      const submissionKey = `${title}-${PLATFORM}`;
       const currentTime = Date.now();
       
       // Check if this is a duplicate within the time window
+      // Only skip if EXACT same submission within 30 seconds
       if (lastSubmission === submissionKey && (currentTime - lastSubmissionTime) < DUPLICATE_WINDOW) {
         console.log('[DSA Sync] Duplicate submission detected (within 30s window), skipping');
         return null;
       }
 
+      // Update last submission tracking
       lastSubmission = submissionKey;
       lastSubmissionTime = currentTime;
+      
+      console.log('[DSA Sync] New submission, will process');
       return data;
 
     } catch (error) {
@@ -365,18 +368,26 @@
 
   // Handle submission detection
   function handleSubmission() {
+    // Prevent concurrent processing
+    if (isProcessing) {
+      console.log('[DSA Sync] Already processing a submission, skipping');
+      return;
+    }
+    
     clearTimeout(debounceTimer);
     
     debounceTimer = setTimeout(() => {
       const data = extractSubmissionData();
       
       if (data) {
+        isProcessing = true; // Set flag
         console.log('[DSA Sync] Submission detected:', data.title);
         
         // Check if chrome.runtime is available
         if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
           console.error('[DSA Sync] Chrome runtime not available - extension context invalidated');
           showToast('⚠️ Please reload this page to sync', 'error');
+          isProcessing = false;
           return;
         }
         
@@ -390,6 +401,7 @@
               // Check if it's context invalidation error
               if (chrome.runtime.lastError.message?.includes('context invalidated')) {
                 showToast('⚠️ Please reload this page to sync', 'error');
+                isProcessing = false;
                 return;
               }
             } else {
@@ -402,6 +414,8 @@
                 chrome.runtime.sendMessage(
                   { type: 'SUBMISSION_DETECTED', data },
                   (response) => {
+                    isProcessing = false; // Reset flag
+                    
                     if (chrome.runtime.lastError) {
                       console.error('[DSA Sync] Message error:', chrome.runtime.lastError);
                       
@@ -423,12 +437,14 @@
               } catch (error) {
                 console.error('[DSA Sync] Send message error:', error);
                 showToast('⚠️ Please reload this page', 'error');
+                isProcessing = false;
               }
             }, 100);
           });
         } catch (error) {
           console.error('[DSA Sync] Runtime error:', error);
           showToast('⚠️ Please reload this page', 'error');
+          isProcessing = false;
         }
       }
     }, DEBOUNCE_DELAY);
