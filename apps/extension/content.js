@@ -16,8 +16,20 @@
   // Platform detection
   function detectPlatform() {
     const hostname = window.location.hostname;
-    if (hostname.includes('leetcode.com')) return 'leetcode';
-    if (hostname.includes('geeksforgeeks.org')) return 'gfg';
+    const pathname = window.location.pathname;
+    
+    console.log('[DSA Sync] Checking platform:', { hostname, pathname });
+    
+    if (hostname.includes('leetcode.com')) {
+      console.log('[DSA Sync] Platform detected: LeetCode');
+      return 'leetcode';
+    }
+    if (hostname.includes('geeksforgeeks.org') && pathname.includes('/problems/')) {
+      console.log('[DSA Sync] Platform detected: GeeksforGeeks');
+      return 'gfg';
+    }
+    
+    console.warn('[DSA Sync] Platform not detected:', hostname);
     return null;
   }
 
@@ -151,18 +163,44 @@
 
     gfg: {
       isAccepted: () => {
-        // Multiple ways to detect success on GFG
+        console.log('[DSA Sync] Checking if GFG submission is accepted...');
+        
+        // Check for success panel
+        const successPanel = document.querySelector('.ui.success.message');
+        if (successPanel) {
+          console.log('[DSA Sync] Found success panel');
+          return true;
+        }
+        
+        // Check for "Problem Solved Successfully" text
+        const successText = document.body.textContent;
+        if (successText.includes('Problem Solved Successfully') || 
+            successText.includes('All test cases passed')) {
+          console.log('[DSA Sync] Found success text');
+          return true;
+        }
+        
+        // Check old selectors
         const successResult = document.querySelector('.problems_submit_result__success');
-        if (successResult) return true;
+        if (successResult) {
+          console.log('[DSA Sync] Found success result element');
+          return true;
+        }
         
         // Check for "Correct Answer" text
-        const pageText = document.body.textContent.toLowerCase();
-        if (pageText.includes('correct answer') || pageText.includes('all test cases passed')) return true;
+        if (successText.includes('Correct Answer') || successText.includes('all test cases passed')) {
+          console.log('[DSA Sync] Found correct answer text');
+          return true;
+        }
         
         // Check for success icon/badge
         const successIcon = document.querySelector('[class*="success"]');
-        if (successIcon && successIcon.textContent.toLowerCase().includes('correct')) return true;
+        if (successIcon && successIcon.textContent.toLowerCase().includes('correct')) {
+          console.log('[DSA Sync] Found success icon');
+          return true;
+        }
         
+        console.log('[DSA Sync] No success indicators found');
         return false;
       },
       
@@ -441,11 +479,22 @@
         return Array.from(mutation.addedNodes).some(node => {
           if (node.nodeType !== 1) return false;
           const text = node.textContent?.toLowerCase() || '';
-          return text.includes('accepted') || text.includes('success');
+          
+          // LeetCode patterns
+          if (text.includes('accepted') && text.includes('runtime')) return true;
+          if (text.includes('accepted') || text.includes('success')) return true;
+          
+          // GFG patterns
+          if (text.includes('problem solved successfully')) return true;
+          if (text.includes('all test cases passed')) return true;
+          if (text.includes('correct answer')) return true;
+          
+          return false;
         });
       });
 
       if (hasSubmissionResult) {
+        console.log('[DSA Sync] Submission result detected in DOM');
         handleSubmission();
       }
     });
@@ -454,6 +503,27 @@
       childList: true,
       subtree: true,
     });
+    
+    // For GFG: Also listen for button clicks (Submit button)
+    if (PLATFORM === 'gfg') {
+      console.log('[DSA Sync] Setting up GFG submit button listener');
+      
+      // Listen for clicks on submit button
+      document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (target && (
+          target.textContent?.includes('Submit') || 
+          target.classList?.contains('submit') ||
+          target.id?.includes('submit')
+        )) {
+          console.log('[DSA Sync] Submit button clicked, will check for success in 3 seconds');
+          // Wait for submission to complete
+          setTimeout(() => {
+            handleSubmission();
+          }, 3000);
+        }
+      }, true);
+    }
   }
 
   // Cleanup on page unload
