@@ -16,32 +16,32 @@ export default function PlatformStats({ stats }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Platform Stats */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">By Platform</h3>
+      <div className="bg-gray-900 rounded-xl shadow-lg border border-gray-800 p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">By Platform</h3>
         <div className="space-y-3">
           {platforms.map((platform) => (
             <div key={platform.name} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${platform.color}`}></div>
-                <span className="text-sm font-medium text-gray-700">{platform.name}</span>
+                <span className="text-sm font-medium text-gray-300">{platform.name}</span>
               </div>
-              <span className="text-sm font-bold text-gray-900">{platform.count}</span>
+              <span className="text-sm font-bold text-white">{platform.count}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Difficulty Stats */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">By Difficulty</h3>
+      <div className="bg-gray-900 rounded-xl shadow-lg border border-gray-800 p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">By Difficulty</h3>
         <div className="space-y-3">
           {difficulties.map((diff) => (
             <div key={diff.name} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${diff.color}`}></div>
-                <span className="text-sm font-medium text-gray-700">{diff.name}</span>
+                <span className="text-sm font-medium text-gray-300">{diff.name}</span>
               </div>
-              <span className="text-sm font-bold text-gray-900">{diff.count}</span>
+              <span className="text-sm font-bold text-white">{diff.count}</span>
             </div>
           ))}
         </div>
