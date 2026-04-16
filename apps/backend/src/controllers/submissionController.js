@@ -21,13 +21,7 @@ export async function handleSubmission(request, reply) {
   const userId = request.user.userId;
   const submission = submissionSchema.parse(request.body);
 
-  logger.info(`📥 Submission received from user ${userId}`);
-  logger.info(`📝 Title: ${submission.title}`);
-  logger.info(`🏷️ Platform: ${submission.platform}`);
-  logger.info(`📊 Difficulty: ${submission.difficulty}`);
-  logger.info(`💻 Language: ${submission.language}`);
-  logger.info(`📄 Code length: ${submission.code.length} chars`);
-  logger.info(`📄 Code preview: ${submission.code.substring(0, 100)}...`);
+  logger.info(`📥 ${submission.platform}: ${submission.title} (${submission.difficulty})`);
 
   // Get user and check for duplicate
   const [user, existingSubmission] = await Promise.all([
@@ -51,7 +45,7 @@ export async function handleSubmission(request, reply) {
 
   // Skip if already submitted
   if (existingSubmission) {
-    logger.info(`⏭️ Skipping duplicate: ${submission.title}`);
+    logger.info(`⏭️ Duplicate: ${submission.title}`);
     return reply.status(200).send({
       success: true,
       message: 'Already submitted',
@@ -64,8 +58,6 @@ export async function handleSubmission(request, reply) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')}`;
 
-  logger.info(`📁 File path: ${filePath}`);
-
   // Insert submission
   const [newSubmission] = await db
     .insert(submissions)
@@ -75,12 +67,12 @@ export async function handleSubmission(request, reply) {
       title: submission.title,
       difficulty: submission.difficulty,
       language: submission.language,
-      code: submission.code, // Save the code
+      code: submission.code,
       filePath,
     })
     .returning();
 
-  logger.info(`💾 Submission saved to DB with ID: ${newSubmission.id}`);
+  logger.info(`💾 Saved ID: ${newSubmission.id}`);
 
   // Update stats
   await updateStats(userId, submission.platform, submission.difficulty);
@@ -95,7 +87,7 @@ export async function handleSubmission(request, reply) {
     githubUsername: user.githubUsername,
   });
 
-  logger.info(`📤 Job queued for GitHub push: ${submission.title}`);
+  logger.info(`📤 Queued: ${submission.title}`);
 
   return reply.status(200).send({
     success: true,

@@ -8,11 +8,7 @@ export const submissionWorker = new Worker(
   async (job) => {
     const { userId, submission, githubToken, repoName, githubUsername } = job.data;
 
-    logger.info(`🔄 Processing job ${job.id} for user ${userId}`);
-    logger.info(`📝 Title: ${submission.title}`);
-    logger.info(`🏷️ Platform: ${submission.platform}`);
-    logger.info(`💻 Language: ${submission.language}`);
-    logger.info(`📄 Code length: ${submission.code?.length || 0} chars`);
+    logger.info(`🔄 Job ${job.id}: ${submission.title}`);
 
     try {
       await githubService.pushToGitHub({
@@ -22,16 +18,19 @@ export const submissionWorker = new Worker(
         submission,
       });
 
-      logger.info(`✅ Successfully pushed ${submission.title} to GitHub for user ${userId}`);
+      logger.info(`✅ Pushed: ${submission.title}`);
     } catch (error) {
-      logger.error(`❌ Failed to push ${submission.title} for user ${userId}:`, error.message);
-      logger.error(`❌ Error stack:`, error.stack);
+      logger.error(`❌ Failed: ${submission.title} - ${error.message}`);
       throw error;
     }
   },
   {
     connection,
-    concurrency: 5,
+    concurrency: 2, // Reduce concurrency to save Redis commands
+    limiter: {
+      max: 5, // Max 5 jobs per duration
+      duration: 60000, // Per minute
+    },
   }
 );
 
