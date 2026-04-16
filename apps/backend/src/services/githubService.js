@@ -71,9 +71,15 @@ class GitHubService {
   async pushToGitHub(options) {
     const { token, repoName, username, submission } = options;
 
+    console.log(`[GitHub] Starting push for: ${submission.title}`);
+    console.log(`[GitHub] Repo: ${username}/${repoName}`);
+    console.log(`[GitHub] Platform: ${submission.platform}`);
+
     await this.ensureRepo(token, username, repoName);
 
     const filePath = this.getFilePath(submission);
+    console.log(`[GitHub] File path: ${filePath}`);
+    
     let sha;
 
     try {
@@ -85,13 +91,15 @@ class GitHubService {
         }
       );
       sha = existing.sha;
+      console.log(`[GitHub] File exists, updating with SHA: ${sha}`);
     } catch {
-      // File doesn't exist
+      console.log(`[GitHub] File doesn't exist, creating new`);
     }
 
     const content = Buffer.from(submission.code).toString('base64');
+    console.log(`[GitHub] Content length: ${content.length} chars (base64)`);
 
-    await this.fetch(
+    const result = await this.fetch(
       `${this.baseUrl}/repos/${username}/${repoName}/contents/${filePath}`,
       {
         method: 'PUT',
@@ -107,6 +115,7 @@ class GitHubService {
       }
     );
 
+    console.log(`[GitHub] Push successful!`);
     return filePath;
   }
 }

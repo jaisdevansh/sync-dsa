@@ -8,6 +8,12 @@ export const submissionWorker = new Worker(
   async (job) => {
     const { userId, submission, githubToken, repoName, githubUsername } = job.data;
 
+    logger.info(`🔄 Processing job ${job.id} for user ${userId}`);
+    logger.info(`📝 Title: ${submission.title}`);
+    logger.info(`🏷️ Platform: ${submission.platform}`);
+    logger.info(`💻 Language: ${submission.language}`);
+    logger.info(`📄 Code length: ${submission.code?.length || 0} chars`);
+
     try {
       await githubService.pushToGitHub({
         token: githubToken,
@@ -16,9 +22,10 @@ export const submissionWorker = new Worker(
         submission,
       });
 
-      logger.info(`✅ Pushed ${submission.title} to GitHub for user ${userId}`);
+      logger.info(`✅ Successfully pushed ${submission.title} to GitHub for user ${userId}`);
     } catch (error) {
-      logger.error(`❌ Failed to push ${submission.title}:`, error);
+      logger.error(`❌ Failed to push ${submission.title} for user ${userId}:`, error.message);
+      logger.error(`❌ Error stack:`, error.stack);
       throw error;
     }
   },

@@ -21,7 +21,13 @@ export async function handleSubmission(request, reply) {
   const userId = request.user.userId;
   const submission = submissionSchema.parse(request.body);
 
-  logger.info(`📥 Submission received: ${submission.title} from user ${userId}`);
+  logger.info(`📥 Submission received from user ${userId}`);
+  logger.info(`📝 Title: ${submission.title}`);
+  logger.info(`🏷️ Platform: ${submission.platform}`);
+  logger.info(`📊 Difficulty: ${submission.difficulty}`);
+  logger.info(`💻 Language: ${submission.language}`);
+  logger.info(`📄 Code length: ${submission.code.length} chars`);
+  logger.info(`📄 Code preview: ${submission.code.substring(0, 100)}...`);
 
   // Get user and check for duplicate
   const [user, existingSubmission] = await Promise.all([
@@ -58,6 +64,8 @@ export async function handleSubmission(request, reply) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')}`;
 
+  logger.info(`📁 File path: ${filePath}`);
+
   // Insert submission
   const [newSubmission] = await db
     .insert(submissions)
@@ -72,7 +80,7 @@ export async function handleSubmission(request, reply) {
     })
     .returning();
 
-  logger.info(`💾 Submission saved to DB: ${newSubmission.id}`);
+  logger.info(`💾 Submission saved to DB with ID: ${newSubmission.id}`);
 
   // Update stats
   await updateStats(userId, submission.platform, submission.difficulty);
