@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, memo, useMemo } from 'react';
-import { FixedSizeList } from 'react-window';
+import { FixedSizeList } from 'react-window/dist/index.cjs.js';
 
 const DIFF_STYLES = {
   easy:   { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  color: '#34d399', label: 'Easy' },
