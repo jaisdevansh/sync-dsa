@@ -23,16 +23,27 @@ export const config = {
 };
 
 // Validate required env vars
-const required = [
-  'DATABASE_URL',
-  'JWT_SECRET',
-  'ENCRYPTION_KEY',
-  'GITHUB_CLIENT_ID',
-  'GITHUB_CLIENT_SECRET',
-];
+const required = {
+  DATABASE_URL: 'Database Connection String',
+  JWT_SECRET: 'Secret for Auth Tokens',
+  ENCRYPTION_KEY: '32-char key for GitHub Token encryption',
+  GITHUB_CLIENT_ID: 'GitHub App Client ID',
+  GITHUB_CLIENT_SECRET: 'GitHub App Secret',
+};
 
-for (const key of required) {
+const missing = [];
+for (const [key, desc] of Object.entries(required)) {
   if (!process.env[key]) {
-    throw new Error(`Missing required environment variable: ${key}`);
+    missing.push(`${key} (${desc})`);
+  }
+}
+
+if (missing.length > 0) {
+  console.error('\n❌ CRITICAL: Missing Environment Variables:');
+  missing.forEach(m => console.error(`   - ${m}`));
+  console.error('\nPlease set these in your Render Dashboard or .env file.\n');
+  
+  if (config.nodeEnv === 'production') {
+    process.exit(1); 
   }
 }
