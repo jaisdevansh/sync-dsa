@@ -1,6 +1,7 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState, useCallback, useEffect } from 'react';
+import debounce from 'lodash.debounce';
 
 const DIFFICULTIES = ['all', 'easy', 'medium', 'hard'];
 const PLATFORMS = ['all', 'leetcode', 'gfg', 'codingninjas'];
@@ -19,7 +20,24 @@ const platColors = {
 };
 
 const FilterBar = memo(function FilterBar({ filters, onFilterChange }) {
-  const set = (key, val) => onFilterChange((prev) => ({ ...prev, [key]: val }));
+  const [localSearch, setLocalSearch] = useState(filters.search);
+
+  // Debounced update for search
+  const debouncedSearch = useCallback(
+    debounce((val) => {
+      onFilterChange((prev) => ({ ...prev, search: val }));
+    }, 300),
+    [onFilterChange]
+  );
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setLocalSearch(val);
+    debouncedSearch(val);
+  };
+
+  const setDifficulty = (d) => onFilterChange((prev) => ({ ...prev, difficulty: d }));
+  const setPlatform = (p) => onFilterChange((prev) => ({ ...prev, platform: p }));
 
   return (
     <div className="glass-card p-5">
@@ -30,15 +48,9 @@ const FilterBar = memo(function FilterBar({ filters, onFilterChange }) {
           <input
             type="text"
             placeholder="Search problems..."
-            value={filters.search}
-            onChange={(e) => set('search', e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl text-white placeholder-gray-600 outline-none focus:ring-1 transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-            }}
-            onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'; }}
-            onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.07)'; e.target.style.boxShadow = 'none'; }}
+            value={localSearch}
+            onChange={handleSearchChange}
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl text-white placeholder-gray-600 outline-none focus:ring-1 transition-all bg-white/5 border border-white/10 focus:border-indigo-500/50"
           />
         </div>
 
@@ -50,7 +62,7 @@ const FilterBar = memo(function FilterBar({ filters, onFilterChange }) {
             return (
               <button
                 key={d}
-                onClick={() => set('difficulty', d)}
+                onClick={() => setDifficulty(d)}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all duration-200"
                 style={{
                   background: active ? c.bg : 'rgba(255,255,255,0.04)',
@@ -74,7 +86,7 @@ const FilterBar = memo(function FilterBar({ filters, onFilterChange }) {
             return (
               <button
                 key={p}
-                onClick={() => set('platform', p)}
+                onClick={() => setPlatform(p)}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200"
                 style={{
                   background: active ? `rgba(${p === 'leetcode' ? '249,115,22' : p === 'gfg' ? '34,197,94' : p === 'codingninjas' ? '168,85,247' : '99,102,241'},0.12)` : 'rgba(255,255,255,0.04)',

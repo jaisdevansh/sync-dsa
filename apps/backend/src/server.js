@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import helmet from '@fastify/helmet';
+import compress from '@fastify/compress';
 import { config } from './config/env.js';
 import { authRoutes } from './routes/auth.js';
 import { submissionRoutes } from './routes/submission.js';
@@ -11,7 +13,10 @@ import { logger } from './utils/logger.js';
 import { runMigrations } from './db/migrate.js';
 
 const fastify = Fastify({
-  logger: config.nodeEnv === 'development',
+  logger: {
+    level: config.nodeEnv === 'development' ? 'debug' : 'info',
+    transport: config.nodeEnv === 'development' ? { target: 'pino-pretty' } : undefined,
+  },
   requestIdLogLabel: 'reqId',
 });
 
@@ -19,6 +24,8 @@ const fastify = Fastify({
 await runMigrations();
 
 // Register plugins
+await fastify.register(compress, { global: true });
+await fastify.register(helmet, { contentSecurityPolicy: false });
 await fastify.register(cors, {
   origin: config.corsOrigin,
   credentials: true,

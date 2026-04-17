@@ -1,110 +1,93 @@
-import { z } from 'zod';
 import { createDb, submissions, users } from '@dsa-sync/database';
 import { config } from '../config/env.js';
 import { githubService } from '../services/githubService.js';
-import { updateStats } from '../services/statsService.js';
+import { statsService } from '../services/statsService.js';
 import { decrypt } from '../utils/crypto.js';
-import { and, eq } from 'drizzle-orm';
+import { response } from '../utils/response.js';
+import { submissionSchema } from '../schemas/index.js';
 import { logger } from '../utils/logger.js';
 
 const db = createDb(config.databaseUrl);
 
-const submissionSchema = z.object({
-  title: z.string().min(1),
-  difficulty: z.enum(['easy', 'medium', 'hard']),
-  code: z.string().min(1),
-  language: z.string().min(1),
-  platform: z.enum(['leetcode', 'gfg', 'codingninjas']),
-});
-
 export async function handleSubmission(request, reply) {
   const userId = request.user.userId;
-  const submission = submissionSchema.parse(request.body);
-
-  logger.info(`📥 ${submission.platform}: ${submission.title} (${submission.difficulty})`);
-
-  // Get user and check for duplicate
-  const [user, existingSubmission] = await Promise.all([
-    db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
-    }),
-    db.query.submissions.findFirst({
-      where: (submissions, { and, eq }) =>
-        and(
-          eq(submissions.userId, userId),
-          eq(submissions.title, submission.title),
-          eq(submissions.platform, submission.platform)
-        ),
-    }),
-  ]);
-
-  if (!user) {
-    logger.error(`❌ User ${userId} not found`);
-    return reply.status(404).send({ error: 'User not found' });
+  
+  // 1. Validation
+  const validation = submissionSchema.safeParse(request.body);
+  if (!validation.success) {
+    return response.error(reply, validation.error.message, 400, 'VALIDATION_ERROR');
   }
-
-  // Skip if already submitted
-  if (existingSubmission) {
-    logger.info(`⏭️ Duplicate: ${submission.title}`);
-    return reply.status(200).send({
-      success: true,
-      message: 'Already submitted',
-      submissionId: existingSubmission.id,
-    });
-  }
-
-  // Use the same path generator as GitHub for accurate DB records
-  const filePath = githubService.getFilePath(submission);
-
-  // Insert submission
-  const [newSubmission] = await db
-    .insert(submissions)
-    .values({
-      userId,
-      platform: submission.platform,
-      title: submission.title,
-      difficulty: submission.difficulty,
-      language: submission.language,
-      code: submission.code,
-      filePath,
-    })
-    .returning();
-
-  logger.info(`💾 Saved ID: ${newSubmission.id}`);
-
-  // Update stats
-  await updateStats(userId, submission.platform, submission.difficulty);
+  const submission = validation.data;
 
   try {
-    const githubToken = decrypt(user.githubToken);
-    
-    logger.info(`🚀 Pushing directly to GitHub: ${submission.title}`);
-    
-    await githubService.pushToGitHub({
-      token: githubToken,
-      repoName: user.repoName,
-      username: user.githubUsername,
-      submission,
-    });
-    
-    logger.info(`✅ Synced to GitHub: ${submission.title}`);
-    
-    return reply.status(200).send({
-      success: true,
-      githubSynced: true,
-      submissionId: newSubmission.id,
-    });
-    
+    // 2. Data consistency check
+    const [user, existingSubmission] = await Promise.all([
+      db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.id, userId),
+      }),
+      db.query.submissions.findFirst({
+        where: (submissions, { and, eq }) =>
+          and(
+            eq(submissions.userId, userId),
+            eq(submissions.title, submission.title),
+            eq(submissions.platform, submission.platform)
+          ),
+      }),
+    ]);
+
+    if (!user) return response.error(reply, 'User not found', 404, 'USER_NOT_FOUND');
+
+    if (existingSubmission) {
+      return response.success(reply, {
+        message: 'Already submitted',
+        submissionId: existingSubmission.id,
+      });
+    }
+
+    // 3. Process Submission
+    const filePath = githubService.getFilePath(submission);
+
+    const [newSubmission] = await db
+      .insert(submissions)
+      .values({
+        userId,
+        platform: submission.platform,
+        title: submission.title,
+        difficulty: submission.difficulty,
+        language: submission.language,
+        code: submission.code,
+        filePath,
+      })
+      .returning();
+
+    // 4. Update Stats
+    await statsService.updateStats(userId, submission.platform, submission.difficulty);
+
+    // 5. GitHub Sync
+    try {
+      const githubToken = decrypt(user.githubToken);
+      await githubService.pushToGitHub({
+        token: githubToken,
+        repoName: user.repoName,
+        username: user.githubUsername,
+        submission,
+      });
+      
+      return response.success(reply, {
+        githubSynced: true,
+        submissionId: newSubmission.id,
+      }, 201);
+    } catch (ghError) {
+      logger.error(`[Submission] GitHub Sync failed for user ${userId}:`, ghError.message);
+      return response.success(reply, {
+        githubSynced: false,
+        error: ghError.message,
+        submissionId: newSubmission.id,
+      }, 201);
+    }
+
   } catch (error) {
-    logger.error(`❌ GitHub Sync failed: ${error.message}`);
-    
-    // We still return 200 because the DB save was successful,
-    // but the frontend will know the GitHub part failed
-    return reply.status(200).send({
-      success: true,
-      githubSynced: false,
-      error: error.message,
-      submissionId: newSubmission.id,
-    });
+    logger.error(`[SubmissionController] Crash for user ${userId}:`, error);
+    return response.error(reply, 'Internal server error');
   }
 }

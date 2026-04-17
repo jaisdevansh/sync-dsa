@@ -1,88 +1,86 @@
 'use client';
 
-import { useEffect, useState, useCallback, memo } from 'react';
-import { getUserStats } from '../../lib/api';
-import StatsCard from '../../components/StatsCard';
-import ChartsSection from '../../components/ChartsSection';
-import HeatMap from '../../components/HeatMap';
-import InsightsPanel from '../../components/InsightsPanel';
-import RecentList from '../../components/RecentList';
-import FilterBar from '../../components/FilterBar';
+import dynamic from 'next/dynamic';
+import { useDashboardData } from '../../hooks/useDashboardData';
+import { useFilters } from '../../hooks/useFilters';
 import Header from '../../components/Header';
 import LoadingScreen from '../../components/LoadingScreen';
 
+// --- Lazy Components ---
+const StatsCard = dynamic(() => import('../../components/StatsCard'));
+const ChartsSection = dynamic(() => import('../../components/ChartsSection'));
+const HeatMap = dynamic(() => import('../../components/HeatMap'));
+const InsightsPanel = dynamic(() => import('../../components/InsightsPanel'));
+const RecentList = dynamic(() => import('../../components/RecentList'));
+const FilterBar = dynamic(() => import('../../components/FilterBar'));
+
 export default function Dashboard() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filters, setFilters] = useState({ difficulty: 'all', platform: 'all', search: '' });
+  // 1. Centralized Data Fetching
+  const { 
+    username, 
+    repoName, 
+    stats, 
+    submissions, 
+    loading, 
+    error 
+  } = useDashboardData();
 
-  const fetchData = useCallback(async () => {
-    try {
-      const jwt = new URLSearchParams(window.location.search).get('jwt');
-      if (!jwt) { setError('No authentication token found'); setLoading(false); return; }
-      const result = await getUserStats(jwt);
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const filteredSubmissions = data?.recentSubmissions?.filter((s) => {
-    const diffOk = filters.difficulty === 'all' || s.difficulty === filters.difficulty;
-    const platOk = filters.platform === 'all' || s.platform === filters.platform;
-    const searchOk = !filters.search || s.title.toLowerCase().includes(filters.search.toLowerCase());
-    return diffOk && platOk && searchOk;
-  }) ?? [];
+  // 2. Specialized Filtering Logic
+  const { 
+    filters, 
+    setFilters, 
+    filteredSubmissions 
+  } = useFilters(submissions);
 
   if (loading) return <LoadingScreen />;
 
   if (error) {
     return (
-      <div className="min-h-screen bg-mesh flex items-center justify-center">
-        <div className="glass-card p-10 text-center max-w-md">
-          <div className="text-5xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-white mb-2">Authentication Error</h2>
-          <p className="text-sm text-gray-400">{error}</p>
-          <p className="text-xs text-gray-600 mt-3">Open the dashboard from the Chrome extension.</p>
+      <div className="min-h-screen bg-mesh flex items-center justify-center p-6 text-center">
+        <div className="glass-card p-10 max-w-md">
+          <div className="text-5xl mb-6">🏜️</div>
+          <h2 className="text-xl font-bold text-white mb-2">Something went wrong</h2>
+          <p className="text-sm text-gray-400 mb-6">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-indigo-600 rounded-xl font-semibold hover:bg-indigo-500 transition-all"
+          >Retry Connection</button>
         </div>
       </div>
     );
   }
 
-  if (!data) return null;
-
   return (
-    <div className="min-h-screen bg-mesh">
-      <Header username={data.username} repoName={data.repoName} />
+    <div className="min-h-screen bg-mesh pb-20">
+      <Header username={username} repoName={repoName} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Stats Cards */}
-        <StatsCard stats={data.stats} />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-700">
+        {/* Top Stats Overview */}
+        <StatsCard stats={stats} />
 
-        {/* Charts */}
-        <ChartsSection submissions={data.recentSubmissions} stats={data.stats} />
+        {/* Analytics & Activity Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <ChartsSection submissions={submissions} stats={stats} />
+            <HeatMap submissions={submissions} />
+          </div>
+          
+          <div className="space-y-8">
+            <InsightsPanel submissions={submissions} stats={stats} />
+            <FilterBar filters={filters} onFilterChange={setFilters} />
+          </div>
+        </div>
 
-        {/* Heatmap */}
-        <HeatMap submissions={data.recentSubmissions} />
-
-        {/* Insights */}
-        <InsightsPanel submissions={data.recentSubmissions} stats={data.stats} />
-
-        {/* Filter Bar */}
-        <FilterBar filters={filters} onFilterChange={setFilters} />
-
-        {/* Submissions List */}
-        <RecentList submissions={filteredSubmissions} totalCount={data.recentSubmissions?.length ?? 0} />
+        {/* Problem Log (Virtualized) */}
+        <RecentList 
+          submissions={filteredSubmissions} 
+          totalCount={submissions.length} 
+        />
       </main>
 
-      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-white/5 mt-8">
-        <p className="text-center text-xs text-gray-600">
-          DSA Sync — <span className="text-indigo-500">@{data.username}</span> · Built to track greatness
+      <footer className="max-w-7xl mx-auto px-8 text-center mt-12 opacity-50">
+        <p className="text-[10px] text-gray-700 uppercase tracking-[0.2em]">
+          Automated Sync · {repoName} · Established 2026
         </p>
       </footer>
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useMemo } from 'react';
+import { FixedSizeList as List } from 'react-window';
 
 const DIFF_STYLES = {
   easy:   { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  color: '#34d399', label: 'Easy' },
@@ -22,201 +23,146 @@ function formatDate(dt) {
   return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-const SubmissionRow = memo(function SubmissionRow({ sub, index, isExpanded, onToggle }) {
+const SubmissionRow = memo(function SubmissionRow({ sub, index, isExpanded, onToggle, style }) {
   const diff = DIFF_STYLES[sub.difficulty] || DIFF_STYLES.medium;
   const plat = PLAT_STYLES[sub.platform] || { color: '#6b7280', label: sub.platform, icon: '⚪' };
   const langColor = LANG_COLORS[sub.language?.toLowerCase()] || '#6b7280';
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback((e) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(sub.code || '');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [sub.code]);
 
   return (
-    <div
-      className="rounded-xl overflow-hidden transition-all duration-200"
-      style={{ border: `1px solid ${isExpanded ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)'}` }}
-    >
-      {/* Row Header */}
+    <div style={style} className="px-1 py-1">
       <div
-        className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
-        style={{ background: isExpanded ? 'rgba(99,102,241,0.05)' : 'transparent' }}
+        className="rounded-xl overflow-hidden transition-all duration-200 border border-white/5 h-full flex items-center"
+        style={{ 
+           borderColor: isExpanded ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
+           background: isExpanded ? 'rgba(99,102,241,0.05)' : 'transparent'
+        }}
         onClick={onToggle}
-        onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
-        onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = 'transparent'; }}
       >
-        {/* Index */}
-        <span className="text-xs text-gray-600 font-mono w-5 shrink-0 text-right">{index + 1}</span>
-
-        {/* Title + meta */}
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-medium text-white truncate">{sub.title}</h4>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs font-medium" style={{ color: plat.color }}>{plat.icon} {plat.label}</span>
-            <span className="text-gray-700">·</span>
-            <span className="text-xs font-mono" style={{ color: langColor }}>{sub.language}</span>
-            {sub.createdAt && (
-              <>
-                <span className="text-gray-700">·</span>
-                <span className="text-xs text-gray-600">{formatDate(sub.createdAt)}</span>
-              </>
-            )}
+        <div className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none w-full">
+          <span className="text-xs text-gray-600 font-mono w-5 shrink-0 text-right">{index + 1}</span>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-medium text-white truncate">{sub.title}</h4>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs font-medium" style={{ color: plat.color }}>{plat.icon} {plat.label}</span>
+              <span className="text-gray-700">·</span>
+              <span className="text-xs font-mono" style={{ color: langColor }}>{sub.language}</span>
+              <span className="text-gray-700">·</span>
+              <span className="text-xs text-gray-600">{formatDate(sub.createdAt)}</span>
+            </div>
           </div>
+          <span
+            className="badge shrink-0"
+            style={{ background: diff.bg, border: `1px solid ${diff.border}`, color: diff.color }}
+          >
+            {diff.label}
+          </span>
+          <svg
+            className="w-4 h-4 shrink-0 transition-transform duration-300"
+            style={{ color: '#4b5563', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
-
-        {/* Difficulty badge */}
-        <span
-          className="badge shrink-0"
-          style={{ background: diff.bg, border: `1px solid ${diff.border}`, color: diff.color }}
-        >
-          {diff.label}
-        </span>
-
-        {/* Expand arrow */}
-        <svg
-          className="w-4 h-4 shrink-0 transition-transform duration-300"
-          style={{ color: '#4b5563', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
       </div>
-
-      {/* Expanded Code */}
-      {isExpanded && (
-        <div className="border-t" style={{ borderColor: 'rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.3)' }}>
-          {sub.code ? (
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono" style={{ color: langColor }}>
-                    {sub.language?.toUpperCase()}
-                  </span>
-                  <span className="text-xs text-gray-600">solution</span>
-                </div>
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200"
-                  style={{
-                    background: copied ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.1)',
-                    border: `1px solid ${copied ? 'rgba(16,185,129,0.3)' : 'rgba(99,102,241,0.2)'}`,
-                    color: copied ? '#34d399' : '#a5b4fc',
-                  }}
-                >
-                  {copied ? '✓ Copied!' : '📋 Copy'}
-                </button>
-              </div>
-              <pre
-                className="code-block text-gray-300 overflow-x-auto max-h-80 p-4 rounded-xl"
-                style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.04)' }}
-              >
-                <code>{sub.code}</code>
-              </pre>
-            </div>
-          ) : (
-            <div className="p-6 text-center">
-              <p className="text-xs text-gray-600">Code not available for this submission</p>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 });
 
-const PAGE_SIZE = 20;
-
 const RecentList = memo(function RecentList({ submissions = [], totalCount }) {
-  const [expandedIndex, setExpandedIndex] = useState(null);
-  const [page, setPage] = useState(1);
+  const [expandedSub, setExpandedSub] = useState(null);
 
-  const visibleSubs = submissions.slice(0, page * PAGE_SIZE);
-  const hasMore = visibleSubs.length < submissions.length;
+  const Row = useCallback(({ index, style }) => {
+    const sub = submissions[index];
+    return (
+      <SubmissionRow 
+        sub={sub} 
+        index={index} 
+        style={style} 
+        isExpanded={expandedSub?.id === sub.id} 
+        onToggle={() => setExpandedSub(expandedSub?.id === sub.id ? null : sub)}
+      />
+    );
+  }, [submissions, expandedSub]);
 
-  const toggle = useCallback((i) => {
-    setExpandedIndex((prev) => (prev === i ? null : i));
-  }, []);
+  const handleExport = useCallback(() => {
+    const csv = [
+      'Title,Platform,Difficulty,Language,Date',
+      ...submissions.map((s) =>
+        `"${s.title}","${s.platform}","${s.difficulty}","${s.language}","${formatDate(s.createdAt)}"`
+      ),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'dsa-submissions.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }, [submissions]);
 
   return (
-    <div className="glass-card p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+    <div className="glass-card p-6 flex flex-col" style={{ height: '600px' }}>
+      <div className="flex items-center justify-between mb-5 shrink-0">
         <div>
-          <h3 className="text-sm font-semibold text-white">All Submissions</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Showing {visibleSubs.length} of {submissions.length}
-            {submissions.length !== totalCount && ` (filtered from ${totalCount})`}
+          <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Submissions Log</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Virtualized viewport: {submissions.length} items
           </p>
         </div>
-        {submissions.length > 0 && (
-          <button
-            onClick={() => {
-              const csv = [
-                'Title,Platform,Difficulty,Language,Date',
-                ...submissions.map((s) =>
-                  `"${s.title}","${s.platform}","${s.difficulty}","${s.language}","${formatDate(s.createdAt)}"`
-                ),
-              ].join('\n');
-              const blob = new Blob([csv], { type: 'text/csv' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url; a.download = 'dsa-submissions.csv'; a.click();
-              URL.revokeObjectURL(url);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200"
-            style={{
-              background: 'rgba(99,102,241,0.08)',
-              border: '1px solid rgba(99,102,241,0.2)',
-              color: '#a5b4fc',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; }}
+        <button
+          onClick={handleExport}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-all"
+        >
+          ⬇ Export CSV
+        </button>
+      </div>
+
+      <div className="flex-1 min-h-0 border-t border-white/5 pt-4">
+        {submissions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-600">
+            <span className="text-4xl mb-4">🧊</span>
+            <p className="text-sm">No submissions found</p>
+          </div>
+        ) : (
+          <List
+            height={480}
+            itemCount={submissions.length}
+            itemSize={72}
+            width="100%"
+            className="scrollbar-hide"
           >
-            ⬇ Export CSV
-          </button>
+            {Row}
+          </List>
         )}
       </div>
 
-      {/* List */}
-      {submissions.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-3">📭</p>
-          <p className="text-sm text-gray-500">No submissions match your filters</p>
-          <p className="text-xs text-gray-600 mt-1">Try adjusting the difficulty or platform filter</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {visibleSubs.map((sub, i) => (
-            <SubmissionRow
-              key={`${sub.title}-${i}`}
-              sub={sub}
-              index={i}
-              isExpanded={expandedIndex === i}
-              onToggle={() => toggle(i)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Load More */}
-      {hasMore && (
-        <div className="mt-5 text-center">
-          <button
-            onClick={() => setPage(p => p + 1)}
-            className="px-6 py-2 rounded-xl text-sm font-medium transition-all duration-200"
-            style={{
-              background: 'rgba(99,102,241,0.1)',
-              border: '1px solid rgba(99,102,241,0.25)',
-              color: '#a5b4fc',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-          >
-            Load more ({submissions.length - visibleSubs.length} remaining)
-          </button>
+      {/* Code Viewer Modal */}
+      {expandedSub && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setExpandedSub(null)} />
+          <div className="glass-card w-full max-w-4xl max-h-[80vh] flex flex-col relative z-10 overflow-hidden shadow-2xl border-white/10">
+            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
+              <div>
+                <h3 className="text-white font-bold">{expandedSub.title}</h3>
+                <p className="text-xs text-gray-500 uppercase">{expandedSub.platform} · {expandedSub.language}</p>
+              </div>
+              <button 
+                onClick={() => setExpandedSub(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-white"
+              >✕</button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 bg-black/40">
+              {expandedSub.code ? (
+                <pre className="code-block text-gray-300 p-4 rounded-xl bg-black/60 border border-white/5">
+                  <code>{expandedSub.code}</code>
+                </pre>
+              ) : (
+                <div className="text-center py-20 text-gray-500">
+                   <p>Code only available for the 50 most recent submissions</p>
+                   <p className="text-xs mt-2">View older code directly on GitHub</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
