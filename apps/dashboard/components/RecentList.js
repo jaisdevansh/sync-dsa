@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, memo, useMemo } from 'react';
-import { FixedSizeList } from 'react-window';
+
 
 const DIFF_STYLES = {
   easy:   { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  color: '#34d399', label: 'Easy' },
@@ -116,22 +116,24 @@ const RecentList = memo(function RecentList({ submissions = [], totalCount }) {
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 border-t border-white/5 pt-4">
+      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar border-t border-white/5 pt-4">
         {submissions.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <span className="text-4xl mb-4">🧊</span>
             <p className="text-sm">No submissions found</p>
           </div>
         ) : (
-          <FixedSizeList
-            height={480}
-            itemCount={submissions.length}
-            itemSize={72}
-            width="100%"
-            className="scrollbar-hide"
-          >
-            {Row}
-          </FixedSizeList>
+          <div className="space-y-1">
+            {submissions.map((sub, idx) => (
+              <SubmissionRow 
+                key={sub.id || idx}
+                sub={sub} 
+                index={idx} 
+                isExpanded={expandedSub?.id === sub.id} 
+                onToggle={() => setExpandedSub(expandedSub?.id === sub.id ? null : sub)}
+              />
+            ))}
+          </div>
         )}
       </div>
 

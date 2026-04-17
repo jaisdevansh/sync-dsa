@@ -98,14 +98,15 @@ function displayStats(stats) {
 elements.connectBtn.addEventListener('click', async () => {
   try {
     // Open GitHub OAuth in new tab
-    const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=https://dsa-sync-backend.onrender.com/api/auth/github/callback`;
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${API_BASE_URL}/auth/github/callback`;
     
     const authWindow = window.open(authUrl, 'GitHub Auth', 'width=600,height=700');
     
     // Listen for messages from the auth window
     const messageListener = async (event) => {
       // Security check
-      if (event.origin !== 'https://dsa-sync-backend.onrender.com') return;
+      const expectedOrigin = new URL(API_BASE_URL).origin;
+      if (event.origin !== expectedOrigin) return;
       
       if (event.data.type === 'DSA_SYNC_AUTH_SUCCESS') {
         window.removeEventListener('message', messageListener);
