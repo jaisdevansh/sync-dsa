@@ -1,14 +1,28 @@
 import { createDb, submissions } from '@dsa-sync/database';
 import { config } from '../config/env.js';
 import { desc } from 'drizzle-orm';
-import { decrypt } from '../utils/crypto.js';
+import { logger } from '../utils/logger.js';
 
 const db = createDb(config.databaseUrl);
 
+// Simple in-memory cache
+const statsCache = new Map();
+const CACHE_TTL = 60 * 1000; // 1 minute
+
 export async function getUserStats(request, reply) {
   const userId = request.user.userId;
+  const now = Date.now();
 
-  const [user, userStats, recentSubmissions] = await Promise.all([
+  // Check cache
+  const cached = statsCache.get(userId);
+  if (cached && (now - cached.timestamp < CACHE_TTL)) {
+    logger.info(`🎯 Cache hit for user stats: ${userId}`);
+    return cached.data;
+  }
+
+  logger.info(`🔍 Fetching fresh stats for user: ${userId}`);
+
+  const [user, userStats, allSubmissions] = await Promise.all([
     db.query.users.findFirst({
       where: (users, { eq }) => eq(users.id, userId),
     }),
@@ -18,6 +32,7 @@ export async function getUserStats(request, reply) {
     db.query.submissions.findMany({
       where: (submissions, { eq }) => eq(submissions.userId, userId),
       orderBy: [desc(submissions.createdAt)],
+      limit: 1000, // Fetch top 1000 as per request to avoid "missing questions"
     }),
   ]);
 
@@ -25,8 +40,7 @@ export async function getUserStats(request, reply) {
     return reply.status(404).send({ error: 'User not found' });
   }
 
-  // Don't fetch from GitHub - only use code from database
-  const submissionsWithCode = recentSubmissions.map((s) => ({
+  const submissionsWithCode = allSubmissions.map((s) => ({
     title: s.title,
     platform: s.platform,
     difficulty: s.difficulty,
@@ -36,7 +50,7 @@ export async function getUserStats(request, reply) {
     createdAt: s.createdAt,
   }));
 
-  return {
+  const responseData = {
     username: user.githubUsername,
     repoName: user.repoName,
     stats: userStats || {
@@ -51,4 +65,12 @@ export async function getUserStats(request, reply) {
     },
     recentSubmissions: submissionsWithCode,
   };
+
+  // Update cache
+  statsCache.set(userId, {
+    timestamp: now,
+    data: responseData,
+  });
+
+  return responseData;
 }

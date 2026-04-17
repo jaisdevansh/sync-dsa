@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, serial } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, serial, index } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -18,6 +18,13 @@ export const submissions = pgTable('submissions', {
   code: text('code'), // Optional - for backward compatibility
   filePath: text('file_path').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    userIdIdx: index('user_id_idx').on(table.userId),
+    platformIdx: index('platform_idx').on(table.platform),
+    difficultyIdx: index('difficulty_idx').on(table.difficulty),
+    createdAtIdx: index('created_at_idx').on(table.createdAt),
+  };
 });
 
 export const stats = pgTable('stats', {
