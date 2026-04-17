@@ -24,9 +24,15 @@
       console.log('[DSA Sync] Platform detected: LeetCode');
       return 'leetcode';
     }
-    if (hostname.includes('geeksforgeeks.org') && pathname.includes('/problems/')) {
+    if (hostname.includes('geeksforgeeks.org') && (pathname.includes('/problems/') || pathname.includes('/practice/'))) {
       console.log('[DSA Sync] Platform detected: GeeksforGeeks');
       return 'gfg';
+    }
+    if (hostname.includes('codingninjas.com') || hostname.includes('naukri.com')) {
+      if (pathname.includes('/problems/') || pathname.includes('/code360/')) {
+        console.log('[DSA Sync] Platform detected: CodingNinjas');
+        return 'codingninjas';
+      }
     }
     
     console.warn('[DSA Sync] Platform not detected:', hostname);
@@ -289,6 +295,79 @@
         return 'cpp';
       },
     },
+
+    codingninjas: {
+      isAccepted: () => {
+        // Check for "Accepted" or "Correct Answer" labels
+        const statusLabel = document.querySelector('.status-label.accepted') || 
+                           document.querySelector('.status-correct');
+        if (statusLabel) return true;
+
+        // Check for checkmark icon
+        const successIcon = document.querySelector('mat-icon.icon-check') ||
+                           document.querySelector('.success-icon');
+        if (successIcon) return true;
+
+        // Check page text
+        const bodyText = document.body.textContent;
+        return bodyText.includes('Correct Answer') || bodyText.includes('Problem Solved Successfully');
+      },
+
+      getTitle: () => {
+        let titleEl = document.querySelector('a.problem-title') || 
+                     document.querySelector('.problem-name') ||
+                     document.querySelector('h1');
+        if (titleEl) return titleEl.textContent.trim();
+
+        // Fallback from URL
+        const match = window.location.pathname.match(/\/problems\/([^\/]+)/) ||
+                      window.location.pathname.match(/\/code360\/problems\/([^\/]+)/);
+        if (match) {
+          return match[1].split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+        return null;
+      },
+
+      getDifficulty: () => {
+        const diffEl = document.querySelector('codingninjas-difficulty-chip') || 
+                       document.querySelector('.difficulty');
+        if (diffEl) {
+          const text = diffEl.textContent.toLowerCase();
+          if (text.includes('easy')) return 'easy';
+          if (text.includes('hard')) return 'hard';
+          if (text.includes('moderate')) return 'medium';
+        }
+        return 'medium';
+      },
+
+      getCode: () => {
+        // CodingNinjas uses Monaco/Studio editor
+        const lines = document.querySelectorAll('.view-lines .view-line');
+        if (lines.length > 0) {
+          return Array.from(lines).map(line => line.textContent).join('\n').trim();
+        }
+
+        // Try textarea fallback
+        const textarea = document.querySelector('textarea.inputarea');
+        if (textarea && textarea.value.length > 10) return textarea.value;
+
+        return null;
+      },
+
+      getLanguage: () => {
+        const langEl = document.querySelector('.language-select .mat-select-value-text') ||
+                       document.querySelector('.classroom-language-select .mat-select-value-text');
+        if (langEl) {
+          const text = langEl.textContent.trim().toLowerCase();
+          if (text.includes('javascript')) return 'javascript';
+          if (text.includes('python')) return 'python';
+          if (text.includes('java')) return 'java';
+          if (text.includes('c++') || text.includes('cpp')) return 'cpp';
+          return text.split(' ')[0]; // Return first word (e.g., "javascript")
+        }
+        return 'javascript';
+      },
+    },
   };
 
   // Extract submission data
@@ -428,7 +507,14 @@
                     }
                     
                     if (response?.success) {
-                      showToast('✅ Synced to GitHub!', 'success');
+                      if (response.data?.message === 'Already submitted') {
+                         showToast('ℹ️ Already submitted', 'info');
+                      } else if (response.data && response.data.githubSynced === false) {
+                         showToast('⚠️ Saved to DB, but GitHub sync failed', 'error');
+                      } else {
+                         // Successfully saved and pushed to GitHub
+                         showToast('✅ Synced to GitHub!', 'success');
+                      }
                     } else {
                       showToast('⚠️ Sync failed', 'error');
                     }

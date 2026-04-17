@@ -10,16 +10,28 @@ export async function updateStats(userId, platform, difficulty) {
   });
 
   const now = new Date();
-  const lastSolved = existing?.lastSolvedDate;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
   let streak = existing?.streak || 0;
-  if (lastSolved) {
-    const daysDiff = Math.floor(
-      (now.getTime() - lastSolved.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    if (daysDiff === 1) streak++;
-    else if (daysDiff > 1) streak = 1;
+  let lastDate = existing?.lastSolvedDate ? new Date(existing.lastSolvedDate) : null;
+  
+  if (lastDate) {
+    const lastDay = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+    const diffTime = today.getTime() - lastDay.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      // Solved on consecutive day
+      streak++;
+    } else if (diffDays > 1) {
+      // Streak broken
+      streak = 1;
+    } else if (diffDays === 0) {
+      // Already solved today, keep current streak
+      streak = existing.streak;
+    }
   } else {
+    // First time solving
     streak = 1;
   }
 

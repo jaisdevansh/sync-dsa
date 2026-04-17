@@ -10,7 +10,7 @@ export const users = pgTable('users', {
 
 export const submissions = pgTable('submissions', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   platform: text('platform').notNull(),
   title: text('title').notNull(),
   difficulty: text('difficulty').notNull(),
@@ -21,7 +21,7 @@ export const submissions = pgTable('submissions', {
 });
 
 export const stats = pgTable('stats', {
-  userId: integer('user_id').primaryKey(),
+  userId: integer('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   totalSolved: integer('total_solved').default(0).notNull(),
   easyCount: integer('easy_count').default(0).notNull(),
   mediumCount: integer('medium_count').default(0).notNull(),

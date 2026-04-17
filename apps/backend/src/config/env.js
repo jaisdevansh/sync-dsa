@@ -10,9 +10,6 @@ export const config = {
   // Database
   databaseUrl: process.env.DATABASE_URL,
   
-  // Redis
-  redisUrl: process.env.REDIS_URL,
-  
   // Auth
   jwtSecret: process.env.JWT_SECRET,
   encryptionKey: process.env.ENCRYPTION_KEY,
@@ -28,7 +25,6 @@ export const config = {
 // Validate required env vars
 const required = [
   'DATABASE_URL',
-  'REDIS_URL',
   'JWT_SECRET',
   'ENCRYPTION_KEY',
   'GITHUB_CLIENT_ID',

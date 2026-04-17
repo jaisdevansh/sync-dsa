@@ -23,7 +23,7 @@ export default function RecentList({ submissions }) {
 
   return (
     <div className="bg-gray-900 rounded-xl shadow-lg border border-gray-800 p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Recent Submissions</h3>
+      <h3 className="text-lg font-semibold text-white mb-4">All Submissions</h3>
       <div className="space-y-3">
         {submissions.length === 0 ? (
           <p className="text-sm text-gray-500 text-center py-8">No submissions yet</p>

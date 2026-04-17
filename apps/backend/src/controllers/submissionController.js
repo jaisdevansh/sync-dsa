@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createDb, submissions, users } from '@dsa-sync/database';
 import { config } from '../config/env.js';
-import { submissionQueue } from '../services/queueService.js';
+import { githubService } from '../services/githubService.js';
 import { updateStats } from '../services/statsService.js';
 import { decrypt } from '../utils/crypto.js';
 import { and, eq } from 'drizzle-orm';
@@ -53,10 +53,8 @@ export async function handleSubmission(request, reply) {
     });
   }
 
-  // Create file path
-  const filePath = `${submission.platform}/${submission.difficulty}/${submission.title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')}`;
+  // Use the same path generator as GitHub for accurate DB records
+  const filePath = githubService.getFilePath(submission);
 
   // Insert submission
   const [newSubmission] = await db
@@ -77,20 +75,36 @@ export async function handleSubmission(request, reply) {
   // Update stats
   await updateStats(userId, submission.platform, submission.difficulty);
 
-  // Queue GitHub push
-  const githubToken = decrypt(user.githubToken);
-  await submissionQueue.add('push-to-github', {
-    userId,
-    submission,
-    githubToken,
-    repoName: user.repoName,
-    githubUsername: user.githubUsername,
-  });
-
-  logger.info(`📤 Queued: ${submission.title}`);
-
-  return reply.status(200).send({
-    success: true,
-    submissionId: newSubmission.id,
-  });
+  try {
+    const githubToken = decrypt(user.githubToken);
+    
+    logger.info(`🚀 Pushing directly to GitHub: ${submission.title}`);
+    
+    await githubService.pushToGitHub({
+      token: githubToken,
+      repoName: user.repoName,
+      username: user.githubUsername,
+      submission,
+    });
+    
+    logger.info(`✅ Synced to GitHub: ${submission.title}`);
+    
+    return reply.status(200).send({
+      success: true,
+      githubSynced: true,
+      submissionId: newSubmission.id,
+    });
+    
+  } catch (error) {
+    logger.error(`❌ GitHub Sync failed: ${error.message}`);
+    
+    // We still return 200 because the DB save was successful,
+    // but the frontend will know the GitHub part failed
+    return reply.status(200).send({
+      success: true,
+      githubSynced: false,
+      error: error.message,
+      submissionId: newSubmission.id,
+    });
+  }
 }

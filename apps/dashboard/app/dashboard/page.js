@@ -112,7 +112,7 @@ export default function Dashboard() {
         {/* Platform & Difficulty Stats */}
         <PlatformStats stats={data.stats} />
 
-        {/* Recent Submissions */}
+        {/* All Submissions */}
         <div className="mt-8">
           <RecentList submissions={data.recentSubmissions} />
         </div>

@@ -18,7 +18,6 @@ export async function getUserStats(request, reply) {
     db.query.submissions.findMany({
       where: (submissions, { eq }) => eq(submissions.userId, userId),
       orderBy: [desc(submissions.createdAt)],
-      limit: 10,
     }),
   ]);
 

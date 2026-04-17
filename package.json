@@ -2,19 +2,18 @@
   "name": "dsa-auto-sync",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
     "dev:backend": "npm run dev --workspace=apps/backend",
-    "dev:worker": "npm run dev:worker --workspace=apps/backend",
     "dev:dashboard": "npm run dev --workspace=apps/dashboard",
     "build": "npm run build --workspaces",
     "db:generate": "npm run db:generate --workspace=packages/database",
     "db:push": "npm run db:push --workspace=packages/database",
     "start:backend": "npm run start --workspace=apps/backend",
-    "start:worker": "npm run start:worker --workspace=apps/backend",
     "start:dashboard": "npm run start --workspace=apps/dashboard",
     "verify": "node verify-setup.js"
   },

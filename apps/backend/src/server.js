@@ -10,9 +10,6 @@ import { rateLimit } from './utils/rate-limit.js';
 import { logger } from './utils/logger.js';
 import { runMigrations } from './db/migrate.js';
 
-// Import worker to start it alongside the server
-import './services/workerService.js';
-
 const fastify = Fastify({
   logger: config.nodeEnv === 'development',
   requestIdLogLabel: 'reqId',
@@ -54,10 +51,10 @@ fastify.get('/keepalive', async () => ({
 try {
   await fastify.listen({ port: config.port, host: '0.0.0.0' });
   logger.info(`🚀 Server running on port ${config.port}`);
-  logger.info(`🔄 Worker running (processing submissions queue)`);
   logger.info(`📝 Environment: ${config.nodeEnv}`);
+  logger.info(`✅ Queue enabled - Background processing active`);
   
-  // Self-ping to keep Render service alive (free tier sleeps after 15 min)
+  // Self-ping to keep Render service alive (only in production)
   if (config.nodeEnv === 'production') {
     const BACKEND_URL = process.env.BACKEND_URL || 'https://dsa-sync-backend.onrender.com';
     
@@ -72,6 +69,8 @@ try {
     }, 25 * 1000); // Every 25 seconds
     
     logger.info('⏰ Auto-keepalive enabled (25 second interval)');
+  } else {
+    logger.info('⏰ Auto-keepalive disabled (development mode)');
   }
 } catch (err) {
   logger.error('Failed to start server:', err);

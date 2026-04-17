@@ -1,7 +1,14 @@
 // Background service worker - Handles API communication
 'use strict';
 
-const API_BASE_URL = 'https://dsa-sync-backend.onrender.com/api';
+// API Configuration
+const IS_PRODUCTION = chrome.runtime.getManifest().update_url !== undefined;
+const API_BASE_URL = IS_PRODUCTION 
+  ? 'https://dsa-sync-backend.onrender.com/api' 
+  : 'http://localhost:3000/api';
+
+console.log(`[DSA Sync] Running in ${IS_PRODUCTION ? 'production' : 'development'} mode`);
+console.log(`[DSA Sync] API URL: ${API_BASE_URL}`);
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
