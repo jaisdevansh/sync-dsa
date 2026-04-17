@@ -81,15 +81,15 @@ const ChartsSection = memo(function ChartsSection({ submissions = [], stats }) {
   const weekData = useMemo(() => getWeeklyActivity(submissions), [submissions]);
 
   const diffPie = useMemo(() => [
-    { name: 'Easy', value: stats.easyCount, fill: '#10b981' },
-    { name: 'Medium', value: stats.mediumCount, fill: '#f59e0b' },
-    { name: 'Hard', value: stats.hardCount, fill: '#f43f5e' },
+    { name: 'Easy', value: stats?.easyCount || 0, fill: '#10b981' },
+    { name: 'Medium', value: stats?.mediumCount || 0, fill: '#f59e0b' },
+    { name: 'Hard', value: stats?.hardCount || 0, fill: '#f43f5e' },
   ].filter((d) => d.value > 0), [stats]);
 
   const platformPie = useMemo(() => [
-    { name: 'LeetCode', value: stats.leetcodeCount, fill: '#f97316' },
-    { name: 'GFG', value: stats.gfgCount, fill: '#22c55e' },
-    { name: 'CodingNinjas', value: stats.cnCount, fill: '#a855f7' },
+    { name: 'LeetCode', value: stats?.leetcodeCount || 0, fill: '#f97316' },
+    { name: 'GFG', value: stats?.gfgCount || 0, fill: '#22c55e' },
+    { name: 'CodingNinjas', value: stats?.cnCount || 0, fill: '#a855f7' },
   ].filter((d) => d.value > 0), [stats]);
 
   const axisStyle = { fill: '#6b7280', fontSize: 11, fontFamily: 'Inter' };

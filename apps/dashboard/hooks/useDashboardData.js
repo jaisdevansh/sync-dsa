@@ -27,12 +27,25 @@ export function useDashboardData() {
   }, []);
 
   useEffect(() => {
-    const cleanup = fetchData();
+    // 1. Handle JWT from URL (for extension deep-linking)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlJwt = params.get('jwt');
+      if (urlJwt) {
+        localStorage.setItem('github_token', urlJwt);
+        // Clean URL without reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+
+    // 2. Initial fetch
+    fetchData();
+
+    // 3. Polling interval
     const interval = setInterval(() => fetchData(true), 5 * 60 * 1000);
-    return () => {
-      cleanup?.();
-      clearInterval(interval);
-    };
+    
+    return () => clearInterval(interval);
   }, [fetchData]);
 
   return {
@@ -40,9 +53,9 @@ export function useDashboardData() {
     loading,
     error,
     refresh: fetchData,
-    username: data?.username,
-    repoName: data?.repoName,
-    stats: data?.stats || {
+    username: data?.username || 'Hunter',
+    repoName: data?.repoName || 'sync-dsa',
+    stats: (data?.stats && typeof data.stats === 'object') ? data.stats : {
       totalSolved: 0,
       easyCount: 0,
       mediumCount: 0,
@@ -52,6 +65,6 @@ export function useDashboardData() {
       cnCount: 0,
       streak: 0,
     },
-    submissions: data?.recentSubmissions || [],
+    submissions: Array.isArray(data?.recentSubmissions) ? data.recentSubmissions : [],
   };
 }

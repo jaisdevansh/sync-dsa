@@ -10,7 +10,7 @@ const cardConfigs = [
     gradient: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
     glow: 'rgba(99,102,241,0.25)',
     textAccent: '#a5b4fc',
-    getMax: (s) => Math.max(s.totalSolved, 1),
+    getMax: (s) => Math.max(s?.totalSolved || 0, 1),
   },
   {
     key: 'streak',
@@ -29,7 +29,7 @@ const cardConfigs = [
     gradient: 'linear-gradient(135deg, #eab308, #f59e0b)',
     glow: 'rgba(234,179,8,0.2)',
     textAccent: '#fde68a',
-    getMax: (s) => Math.max(s.totalSolved, 1),
+    getMax: (s) => Math.max(s?.totalSolved || 0, 1),
   },
   {
     key: 'hardCount',
@@ -38,12 +38,12 @@ const cardConfigs = [
     gradient: 'linear-gradient(135deg, #f43f5e, #e11d48)',
     glow: 'rgba(244,63,94,0.2)',
     textAccent: '#fca5a5',
-    getMax: (s) => Math.max(s.totalSolved, 1),
+    getMax: (s) => Math.max(s?.totalSolved || 0, 1),
   },
 ];
 
 function SingleCard({ config, stats }) {
-  const value = stats[config.key] ?? 0;
+  const value = stats?.[config.key] ?? 0;
   const pct = config.getMax
     ? Math.round((value / config.getMax(stats)) * 100)
     : Math.min(value * 10, 100);
@@ -95,11 +95,11 @@ function SingleCard({ config, stats }) {
 }
 
 const StatsCard = memo(function StatsCard({ stats }) {
-  // Extra sub-row for easy/medium/hard breakdown
+  if (!stats) return null;
   const total = stats.totalSolved || 1;
-  const easyPct = Math.round((stats.easyCount / total) * 100);
-  const medPct = Math.round((stats.mediumCount / total) * 100);
-  const hardPct = Math.round((stats.hardCount / total) * 100);
+  const easyPct = Math.round(((stats.easyCount || 0) / total) * 100);
+  const medPct = Math.round(((stats.mediumCount || 0) / total) * 100);
+  const hardPct = Math.round(((stats.hardCount || 0) / total) * 100);
 
   return (
     <section>
@@ -118,9 +118,9 @@ const StatsCard = memo(function StatsCard({ stats }) {
           <div className="h-2 rounded-r-full" style={{ width: `${hardPct}%`, background: 'linear-gradient(90deg,#f43f5e,#fb7185)', minWidth: hardPct > 0 ? '4px' : '0' }} />
         </div>
         <div className="flex items-center gap-4 text-xs shrink-0">
-          <span className="text-emerald-400 font-semibold">E&nbsp;{stats.easyCount}</span>
-          <span className="text-amber-400 font-semibold">M&nbsp;{stats.mediumCount}</span>
-          <span className="text-rose-400 font-semibold">H&nbsp;{stats.hardCount}</span>
+          <span className="text-emerald-400 font-semibold">E&nbsp;{stats.easyCount || 0}</span>
+          <span className="text-amber-400 font-semibold">M&nbsp;{stats.mediumCount || 0}</span>
+          <span className="text-rose-400 font-semibold">H&nbsp;{stats.hardCount || 0}</span>
         </div>
       </div>
     </section>

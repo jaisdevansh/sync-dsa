@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, memo, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { FixedSizeList } from 'react-window';
 
 const DIFF_STYLES = {
   easy:   { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  color: '#34d399', label: 'Easy' },
@@ -123,7 +123,7 @@ const RecentList = memo(function RecentList({ submissions = [], totalCount }) {
             <p className="text-sm">No submissions found</p>
           </div>
         ) : (
-          <List
+          <FixedSizeList
             height={480}
             itemCount={submissions.length}
             itemSize={72}
@@ -131,7 +131,7 @@ const RecentList = memo(function RecentList({ submissions = [], totalCount }) {
             className="scrollbar-hide"
           >
             {Row}
-          </List>
+          </FixedSizeList>
         )}
       </div>
 

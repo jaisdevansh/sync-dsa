@@ -6,11 +6,11 @@ function generateInsights(submissions, stats) {
   const insights = [];
   if (!submissions || !submissions.length) return insights;
 
-  const total = stats.totalSolved || 0;
-  const easy = stats.easyCount || 0;
-  const med = stats.mediumCount || 0;
-  const hard = stats.hardCount || 0;
-  const streak = stats.streak || 0;
+  const total = stats?.totalSolved || 0;
+  const easy = stats?.easyCount || 0;
+  const med = stats?.mediumCount || 0;
+  const hard = stats?.hardCount || 0;
+  const streak = stats?.streak || 0;
 
   // Weekday analysis
   const weekdayCounts = Array(7).fill(0);
@@ -77,7 +77,7 @@ function generateInsights(submissions, stats) {
   }
 
   // Platform diversity
-  const platforms = [stats.leetcodeCount, stats.gfgCount, stats.cnCount].filter(Boolean).length;
+  const platforms = [stats?.leetcodeCount || 0, stats?.gfgCount || 0, stats?.cnCount || 0].filter(Boolean).length;
   if (platforms === 1) {
     insights.push({
       icon: '🌐',

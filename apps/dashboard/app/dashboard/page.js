@@ -7,12 +7,12 @@ import Header from '../../components/Header';
 import LoadingScreen from '../../components/LoadingScreen';
 
 // --- Lazy Components ---
-const StatsCard = dynamic(() => import('../../components/StatsCard'));
-const ChartsSection = dynamic(() => import('../../components/ChartsSection'));
-const HeatMap = dynamic(() => import('../../components/HeatMap'));
-const InsightsPanel = dynamic(() => import('../../components/InsightsPanel'));
-const RecentList = dynamic(() => import('../../components/RecentList'));
-const FilterBar = dynamic(() => import('../../components/FilterBar'));
+const StatsCard = dynamic(() => import('../../components/StatsCard'), { ssr: false });
+const ChartsSection = dynamic(() => import('../../components/ChartsSection'), { ssr: false });
+const HeatMap = dynamic(() => import('../../components/HeatMap'), { ssr: false });
+const InsightsPanel = dynamic(() => import('../../components/InsightsPanel'), { ssr: false });
+const RecentList = dynamic(() => import('../../components/RecentList'), { ssr: false });
+const FilterBar = dynamic(() => import('../../components/FilterBar'), { ssr: false });
 
 export default function Dashboard() {
   // 1. Centralized Data Fetching
