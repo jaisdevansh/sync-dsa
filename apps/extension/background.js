@@ -80,7 +80,15 @@ async function submitWithRetry(data, jwt, retryCount = 0) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const detailedError = errorData.error || errorData.message || `HTTP ${response.status}`;
+      let detailedError = `HTTP ${response.status}`;
+      
+      if (typeof errorData.error === 'object' && errorData.error !== null) {
+        detailedError = errorData.error.message || JSON.stringify(errorData.error);
+      } else if (typeof errorData.error === 'string') {
+        detailedError = errorData.error;
+      } else if (errorData.message) {
+        detailedError = errorData.message;
+      }
       
       // Do not retry client errors (400, 401, 403) or known decryption issues
       if (response.status >= 400 && response.status < 500) {

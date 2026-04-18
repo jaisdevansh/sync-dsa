@@ -516,8 +516,12 @@
                          showToast('✅ Synced to GitHub!', 'success');
                       }
                     } else {
+                      let errMsg = response?.error;
+                      if (typeof errMsg === 'object') {
+                        errMsg = errMsg.message || errMsg.error || JSON.stringify(errMsg);
+                      }
                       console.error('[DSA Sync] API Submission Rejected:', response?.error);
-                      showToast(`⚠️ Sync failed: ${response?.error || 'Unknown error'}`, 'error');
+                      showToast(`⚠️ Sync failed: ${errMsg || 'Unknown error'}`, 'error');
                     }
                   }
                 );
