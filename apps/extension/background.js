@@ -79,14 +79,21 @@ async function submitWithRetry(data, jwt, retryCount = 0) {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || `HTTP ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      const detailedError = errorData.error || errorData.message || `HTTP ${response.status}`;
+      
+      // Do not retry client errors (400, 401, 403) or known decryption issues
+      if (response.status >= 400 && response.status < 500) {
+        throw new Error(detailedError);
+      }
+      
+      throw new Error(detailedError);
     }
 
     return await response.json();
   } catch (error) {
-    // Retry on failure
-    if (retryCount < MAX_RETRIES) {
+    // Retry on failure if it's a network error or 5xx server error
+    if (retryCount < MAX_RETRIES && !error.message.includes('40')) {
       const delay = RETRY_DELAY * Math.pow(2, retryCount);
       console.log(`[DSA Sync] Retry ${retryCount + 1}/${MAX_RETRIES} after ${delay}ms`);
       
@@ -94,6 +101,8 @@ async function submitWithRetry(data, jwt, retryCount = 0) {
       return submitWithRetry(data, jwt, retryCount + 1);
     }
     
+    // Log the EXACT error trace to the extension's service worker console
+    console.error(`[DSA Sync] CRITICAL SUBMISSION ERROR: ${error.message}`);
     throw error;
   }
 }

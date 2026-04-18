@@ -88,6 +88,7 @@ export async function handleSubmission(request, reply) {
 
   } catch (error) {
     logger.error(`[SubmissionController] Crash for user ${userId}:`, error);
-    return response.error(reply, 'Internal server error');
+    // Exposing the exact error to the client to debug API issues like encryption mismatches
+    return response.error(reply, error.message || 'Internal server error');
   }
 }

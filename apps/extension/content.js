@@ -510,13 +510,14 @@
                       if (response.data?.message === 'Already submitted') {
                          showToast('ℹ️ Already submitted', 'info');
                       } else if (response.data && response.data.githubSynced === false) {
-                         showToast('⚠️ Saved to DB, but GitHub sync failed', 'error');
+                         showToast(`⚠️ Saved to DB, but GitHub failed: ${response.data.error || ''}`, 'error');
                       } else {
                          // Successfully saved and pushed to GitHub
                          showToast('✅ Synced to GitHub!', 'success');
                       }
                     } else {
-                      showToast('⚠️ Sync failed', 'error');
+                      console.error('[DSA Sync] API Submission Rejected:', response?.error);
+                      showToast(`⚠️ Sync failed: ${response?.error || 'Unknown error'}`, 'error');
                     }
                   }
                 );
