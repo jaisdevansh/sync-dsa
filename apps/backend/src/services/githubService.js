@@ -73,13 +73,14 @@ class GitHubService {
   }
 
   getFilePath(submission) {
-    const ext = this.getExtension(submission.language);
-    const sanitized = submission.title
+    const ext = this.getExtension(submission.language || 'txt');
+    const title = submission.title || `submission-${Date.now()}`;
+    const sanitized = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
     
-    return `${submission.platform}/${submission.difficulty}/${sanitized}.${ext}`;
+    return `${submission.platform || 'unknown'}/${submission.difficulty || 'unknown'}/${sanitized || 'solution'}.${ext}`;
   }
 
   getExtension(language) {
@@ -127,7 +128,7 @@ class GitHubService {
       // File doesn't exist, which is fine for creation
     }
 
-    const content = Buffer.from(submission.code).toString('base64');
+    const content = Buffer.from(submission.code || '// No code provided').toString('base64');
     logger.info(`[GitHub] Sending PUT request to save file...`);
 
     const response = await this.fetch(
