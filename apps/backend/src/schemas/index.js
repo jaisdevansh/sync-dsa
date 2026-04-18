@@ -6,7 +6,6 @@ export const submissionSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']),
   language: z.string(),
   code: z.string().optional(),
-  filePath: z.string(),
 });
 
 export const loginSchema = z.object({
