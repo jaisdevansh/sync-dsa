@@ -1,7 +1,10 @@
 // Popup script - UI logic
 'use strict';
 
-const API_BASE_URL = 'https://dsa-sync-backend.onrender.com/api';
+const IS_PRODUCTION = chrome.runtime.getManifest().update_url !== undefined;
+const API_BASE_URL = IS_PRODUCTION 
+  ? 'https://dsa-sync-backend.onrender.com/api' 
+  : 'http://localhost:3000/api';
 const DASHBOARD_URL = 'https://sync-dsa-dashboard.vercel.app/dashboard';
 const GITHUB_CLIENT_ID = 'Ov23lixTaTeICwY4oD9L'; // ✅ Configured!
 
@@ -79,19 +82,30 @@ function updateUnauthenticatedUI() {
 }
 
 // Display stats
-function displayStats(stats) {
-  if (!stats || !stats.stats) return;
+function displayStats(inputData) {
+  let statsObj = null;
 
-  const { totalSolved, streak } = stats.stats;
+  if (inputData && inputData.data && inputData.data.stats) {
+    // Fresh response from backend
+    statsObj = inputData.data.stats;
+  } else if (inputData && inputData.stats) {
+    // Nested format or old format
+    statsObj = inputData.stats;
+  } else if (inputData && typeof inputData.totalSolved !== 'undefined') {
+    // Flat format from initial storage
+    statsObj = inputData;
+  }
+
+  if (!statsObj) return;
+
+  const { totalSolved, streak } = statsObj;
   
   elements.totalSolved.textContent = totalSolved || 0;
   elements.streak.textContent = streak || 0;
   elements.statsCard.classList.remove('hidden');
 
-  // Show dashboard button if solved >= 5
-  if (totalSolved >= 5) {
-    elements.dashboardBtn.classList.remove('hidden');
-  }
+  // Always show dashboard button
+  elements.dashboardBtn.classList.remove('hidden');
 }
 
 // Handle GitHub connection
