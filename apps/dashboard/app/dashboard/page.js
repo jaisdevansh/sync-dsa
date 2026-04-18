@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDashboardData } from '../../hooks/useDashboardData';
@@ -33,8 +34,37 @@ const itemVariants = {
 };
 
 export default function Dashboard() {
-  const { username, repoName, stats, submissions, loading, error } = useDashboardData();
+  const { username, repoName, stats: rawStats, submissions, loading, error } = useDashboardData();
   const { filters, setFilters, filteredSubmissions } = useFilters(submissions);
+
+  // Derive stats dynamically from the actual submissions array to ensure 100% consistency
+  // If the DB stats table gets out of sync with submissions, the UI will still show the truth.
+  const trueStats = React.useMemo(() => {
+    if (!submissions || submissions.length === 0) return rawStats;
+    
+    const s = {
+      totalSolved: submissions.length,
+      easyCount: 0,
+      mediumCount: 0,
+      hardCount: 0,
+      leetcodeCount: 0,
+      gfgCount: 0,
+      streak: rawStats?.streak || 0, // Keep streak from backend
+    };
+    
+    submissions.forEach(sub => {
+      const d = (sub.difficulty || '').toLowerCase();
+      if (d === 'easy') s.easyCount++;
+      else if (d === 'hard') s.hardCount++;
+      else s.mediumCount++; // Fallback to medium
+      
+      const p = (sub.platform || '').toLowerCase();
+      if (p === 'leetcode') s.leetcodeCount++;
+      if (p === 'gfg') s.gfgCount++;
+    });
+    
+    return s;
+  }, [submissions, rawStats]);
 
   return (
     <div className="min-h-screen bg-mesh pb-20 overflow-x-hidden selection:bg-indigo-500/30">
@@ -69,14 +99,14 @@ export default function Dashboard() {
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
               {/* Top Stats Overview */}
               <motion.div variants={itemVariants}>
-                <StatsCard stats={stats} />
+                <StatsCard stats={trueStats} />
               </motion.div>
 
               {/* Analytics & Activity Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8 flex flex-col">
                   <motion.div variants={itemVariants} className="flex-1 flex flex-col">
-                    <ChartsSection submissions={submissions} stats={stats} />
+                    <ChartsSection submissions={submissions} stats={trueStats} />
                   </motion.div>
                   <motion.div variants={itemVariants}>
                     <HeatMap submissions={submissions} />
@@ -88,7 +118,7 @@ export default function Dashboard() {
                     <FilterBar filters={filters} onFilterChange={setFilters} />
                   </motion.div>
                   <motion.div variants={itemVariants} className="sticky top-8">
-                    <InsightsPanel submissions={submissions} stats={stats} />
+                    <InsightsPanel submissions={submissions} stats={trueStats} />
                   </motion.div>
                 </div>
               </div>
