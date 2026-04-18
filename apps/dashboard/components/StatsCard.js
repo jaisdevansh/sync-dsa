@@ -1,6 +1,7 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 
 const cardConfigs = [
   {
@@ -42,6 +43,30 @@ const cardConfigs = [
   },
 ];
 
+const AnimatedNumber = ({ value }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  
+  useEffect(() => {
+    let start = 0;
+    const end = parseInt(value, 10);
+    if (start === end) return;
+    
+    let totalDuration = 1000;
+    let incrementTime = (totalDuration / end);
+    incrementTime = incrementTime < 10 ? 10 : incrementTime;
+    
+    const timer = setInterval(() => {
+      start += 1;
+      setDisplayValue(start);
+      if (start >= end) clearInterval(timer);
+    }, incrementTime);
+    
+    return () => clearInterval(timer);
+  }, [value]);
+  
+  return <>{displayValue}</>;
+};
+
 function SingleCard({ config, stats }) {
   const value = stats?.[config.key] ?? 0;
   const pct = config.getMax
@@ -49,48 +74,52 @@ function SingleCard({ config, stats }) {
     : Math.min(value * 10, 100);
 
   return (
-    <div
-      className="glass-card p-5 relative overflow-hidden cursor-default group transition-all duration-300"
+    <motion.div
+      className="glass-card p-5 relative overflow-hidden group cursor-default"
       style={{ '--glow': config.glow }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)';
-        e.currentTarget.style.boxShadow = `0 0 32px ${config.glow}, 0 8px 32px rgba(0,0,0,0.5)`;
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+      whileHover={{
+        y: -4,
+        scale: 1.02,
+        boxShadow: `0 0 40px ${config.glow}, 0 20px 40px rgba(0,0,0,0.4)`,
+        borderColor: 'rgba(255,255,255,0.15)'
       }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = 'translateY(0) scale(1)';
-        e.currentTarget.style.boxShadow = '';
-        e.currentTarget.style.borderColor = '';
-      }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
       {/* Background gradient blob */}
-      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-10 blur-2xl transition-opacity group-hover:opacity-20"
-        style={{ background: config.gradient }} />
+      <motion.div 
+        className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-20"
+        style={{ background: config.gradient }} 
+      />
 
       {/* Icon */}
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-4 shrink-0"
-        style={{ background: config.gradient, boxShadow: `0 4px 12px ${config.glow}` }}>
+      <motion.div 
+        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-4 shrink-0 transition-transform duration-300 group-hover:scale-110"
+        style={{ background: config.gradient, boxShadow: `0 4px 12px ${config.glow}` }}
+      >
         {config.icon}
-      </div>
+      </motion.div>
 
       {/* Value */}
       <div className="flex items-end gap-1 mb-1">
-        <span className="text-3xl font-black text-white leading-none">
-          {config.isStreak && value > 0 ? value : value}
+        <span className="text-3xl font-black text-white leading-none tracking-tight">
+          {value > 0 ? <AnimatedNumber value={value} /> : 0}
         </span>
         {config.suffix && <span className="text-sm font-medium mb-1" style={{ color: config.textAccent }}>{config.suffix}</span>}
       </div>
 
-      <p className="text-xs font-medium text-gray-500 mb-4">{config.label}</p>
+      <p className="text-xs font-medium text-gray-500 mb-4 tracking-wide">{config.label}</p>
 
       {/* Progress bar */}
-      <div className="progress-bar w-full bg-white/5">
-        <div
-          className="h-full rounded-full transition-all duration-1000"
-          style={{ width: `${pct}%`, background: config.gradient }}
+      <div className="progress-bar w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+        <motion.div
+          className="h-full rounded-full"
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
+          style={{ background: config.gradient }}
         />
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -103,26 +132,43 @@ const StatsCard = memo(function StatsCard({ stats }) {
 
   return (
     <section>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         {cardConfigs.map(cfg => (
           <SingleCard key={cfg.key} config={cfg} stats={stats} />
         ))}
       </div>
 
       {/* Compact difficulty breakdown bar */}
-      <div className="glass-card mt-4 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <span className="text-xs font-semibold text-gray-500 shrink-0 uppercase tracking-wider">Difficulty Split</span>
-        <div className="flex-1 flex gap-1 w-full sm:w-auto">
-          <div className="h-2 rounded-l-full" style={{ width: `${easyPct}%`, background: 'linear-gradient(90deg,#10b981,#34d399)', minWidth: easyPct > 0 ? '4px' : '0' }} />
-          <div className="h-2" style={{ width: `${medPct}%`, background: 'linear-gradient(90deg,#f59e0b,#fbbf24)', minWidth: medPct > 0 ? '4px' : '0' }} />
-          <div className="h-2 rounded-r-full" style={{ width: `${hardPct}%`, background: 'linear-gradient(90deg,#f43f5e,#fb7185)', minWidth: hardPct > 0 ? '4px' : '0' }} />
+      <motion.div 
+        className="glass-card mt-5 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <span className="text-xs font-semibold text-gray-500 shrink-0 uppercase tracking-widest">Difficulty Split</span>
+        <div className="flex-1 flex gap-1 w-full sm:w-auto h-2 bg-white/5 rounded-full overflow-hidden p-[1px]">
+          <motion.div 
+            className="h-full rounded-full" 
+            initial={{ width: 0 }} animate={{ width: `${easyPct}%` }} transition={{ duration: 1, delay: 0.5 }}
+            style={{ background: 'linear-gradient(90deg,#10b981,#34d399)' }} 
+          />
+          <motion.div 
+            className="h-full rounded-full" 
+            initial={{ width: 0 }} animate={{ width: `${medPct}%` }} transition={{ duration: 1, delay: 0.6 }}
+            style={{ background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }} 
+          />
+          <motion.div 
+            className="h-full rounded-full" 
+            initial={{ width: 0 }} animate={{ width: `${hardPct}%` }} transition={{ duration: 1, delay: 0.7 }}
+            style={{ background: 'linear-gradient(90deg,#f43f5e,#fb7185)' }} 
+          />
         </div>
-        <div className="flex items-center gap-4 text-xs shrink-0">
-          <span className="text-emerald-400 font-semibold">E&nbsp;{stats.easyCount || 0}</span>
-          <span className="text-amber-400 font-semibold">M&nbsp;{stats.mediumCount || 0}</span>
-          <span className="text-rose-400 font-semibold">H&nbsp;{stats.hardCount || 0}</span>
+        <div className="flex items-center gap-4 text-xs shrink-0 font-medium tracking-wide">
+          <span className="text-emerald-400">E&nbsp;{stats.easyCount || 0}</span>
+          <span className="text-amber-400">M&nbsp;{stats.mediumCount || 0}</span>
+          <span className="text-rose-400">H&nbsp;{stats.hardCount || 0}</span>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 });
