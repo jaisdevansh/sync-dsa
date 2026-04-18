@@ -1,10 +1,7 @@
 // Popup script - UI logic
 'use strict';
 
-const IS_PRODUCTION = chrome.runtime.getManifest().update_url !== undefined;
-const API_BASE_URL = IS_PRODUCTION 
-  ? 'https://dsa-sync-backend.onrender.com/api' 
-  : 'http://localhost:3000/api';
+const API_BASE_URL = 'https://dsa-sync-backend.onrender.com/api';
 const DASHBOARD_URL = 'https://sync-dsa-dashboard.vercel.app/dashboard';
 const GITHUB_CLIENT_ID = 'Ov23lixTaTeICwY4oD9L'; // ✅ Configured!
 
