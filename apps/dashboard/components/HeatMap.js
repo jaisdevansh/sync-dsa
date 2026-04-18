@@ -137,13 +137,17 @@ const HeatMap = memo(function HeatMap({ submissions = [] }) {
         </div>
       </div>
 
-      {/* Tooltip */}
-      {tooltip && (
-        <div className="mt-2 text-center text-xs text-gray-400 pointer-events-none">
-          <span className="text-white font-semibold">{tooltip.cell.count} problems</span>
-          {' '}on {tooltip.cell.display}
-        </div>
-      )}
+      {/* Fixed Height Tooltip Area to prevent layout shift / flickering */}
+      <div className="h-6 mt-3 text-center text-xs text-gray-400 pointer-events-none flex items-center justify-center">
+        {tooltip ? (
+          <span className="animate-in fade-in slide-in-from-bottom-1 duration-200">
+            <span className="text-indigo-400 font-bold">{tooltip.cell.count} submissions</span>
+            {' '}on <span className="text-gray-300">{tooltip.cell.display}</span>
+          </span>
+        ) : (
+          <span className="opacity-0">Hover to view</span>
+        )}
+      </div>
     </div>
   );
 });
