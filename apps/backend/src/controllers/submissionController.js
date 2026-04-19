@@ -19,6 +19,8 @@ export async function handleSubmission(request, reply) {
   }
   const submission = validation.data;
 
+  logger.info(`📥 ${submission.platform}: ${submission.title} (${submission.difficulty})`);
+
   try {
     // 2. Data consistency check
     const [user, existingSubmission] = await Promise.all([
@@ -38,6 +40,7 @@ export async function handleSubmission(request, reply) {
     if (!user) return response.error(reply, 'User not found', 404, 'USER_NOT_FOUND');
 
     if (existingSubmission) {
+      logger.info(`⏭️ Duplicate: ${submission.title}`);
       return response.success(reply, {
         message: 'Already submitted',
         submissionId: existingSubmission.id,
@@ -60,12 +63,16 @@ export async function handleSubmission(request, reply) {
       })
       .returning();
 
+    logger.info(`💾 Saved to DB: ${submission.title} (ID: ${newSubmission.id})`);
+
     // 4. Update Stats
     await statsService.updateStats(userId, submission.platform, submission.difficulty);
 
     // 5. GitHub Sync
     try {
       const githubToken = decrypt(user.githubToken);
+      logger.info(`🔄 Pushing to GitHub: ${submission.title}`);
+      
       await githubService.pushToGitHub({
         token: githubToken,
         repoName: user.repoName,
@@ -73,12 +80,14 @@ export async function handleSubmission(request, reply) {
         submission,
       });
       
+      logger.info(`✅ Pushed to GitHub: ${submission.title}`);
+      
       return response.success(reply, {
         githubSynced: true,
         submissionId: newSubmission.id,
       }, 201);
     } catch (ghError) {
-      logger.error(`[Submission] GitHub Sync failed for user ${userId}:`, ghError.message);
+      logger.error(`❌ GitHub Sync failed for ${submission.title}:`, ghError.message);
       return response.success(reply, {
         githubSynced: false,
         error: ghError.message,

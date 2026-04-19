@@ -108,41 +108,31 @@ function displayStats(inputData) {
 // Handle GitHub connection
 elements.connectBtn.addEventListener('click', async () => {
   try {
-    // Open GitHub OAuth in new tab
+    // Open GitHub OAuth in new tab (not popup window)
     const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${API_BASE_URL}/auth/github/callback`;
     
-    const authWindow = window.open(authUrl, 'GitHub Auth', 'width=600,height=700');
+    // Use chrome.storage to communicate between success page and popup
+    // Set a flag that we're waiting for auth
+    await chrome.storage.local.set({ authInProgress: true });
     
-    // Listen for messages from the auth window
-    const messageListener = async (event) => {
-      // Security check
-      const expectedOrigin = new URL(API_BASE_URL).origin;
-      if (event.origin !== expectedOrigin) return;
+    // Open in new tab instead of popup
+    chrome.tabs.create({ url: authUrl });
+    
+    // Poll for auth completion
+    const pollInterval = setInterval(async () => {
+      const { authInProgress, jwt, username } = await chrome.storage.local.get(['authInProgress', 'jwt', 'username']);
       
-      if (event.data.type === 'DSA_SYNC_AUTH_SUCCESS') {
-        window.removeEventListener('message', messageListener);
-        
-        if (event.data.jwt) {
-          await chrome.storage.local.set({ 
-            jwt: event.data.jwt,
-            username: event.data.username 
-          });
-          await init(); // Refresh UI
-          showSuccess('Connected successfully!');
-          
-          // Close auth window if still open
-          if (authWindow && !authWindow.closed) {
-            authWindow.close();
-          }
-        }
+      if (!authInProgress && jwt) {
+        clearInterval(pollInterval);
+        await init(); // Refresh UI
+        showSuccess('Connected successfully!');
       }
-    };
-    
-    window.addEventListener('message', messageListener);
+    }, 500);
     
     // Cleanup after 2 minutes
     setTimeout(() => {
-      window.removeEventListener('message', messageListener);
+      clearInterval(pollInterval);
+      chrome.storage.local.remove('authInProgress');
     }, 120000);
     
   } catch (error) {

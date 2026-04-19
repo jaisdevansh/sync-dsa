@@ -263,19 +263,22 @@
     let isVisible = false;
     let countdown = 10;
 
-    // Send JWT to extension popup (opener window)
-    function notifyExtension() {
+    // Send JWT to extension via chrome.storage
+    async function notifyExtension() {
       try {
-        if (window.opener && !window.opener.closed) {
-          window.opener.postMessage({
-            type: 'DSA_SYNC_AUTH_SUCCESS',
+        // Check if chrome.storage is available (extension context)
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          await chrome.storage.local.set({ 
             jwt: realToken,
-            username: username
-          }, '*');
-          console.log('Sent JWT to extension');
+            username: username,
+            authInProgress: false
+          });
+          console.log('JWT saved to chrome.storage');
+        } else {
+          console.log('Not in extension context - chrome.storage not available');
         }
       } catch (e) {
-        console.error('Failed to notify extension:', e);
+        console.error('Failed to save JWT:', e);
       }
     }
 

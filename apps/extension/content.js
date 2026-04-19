@@ -211,25 +211,40 @@
       },
       
       getTitle: () => {
-        // Try multiple selectors for title
-        let titleEl = document.querySelector('.problems_header_content__title__text');
-        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        // Strategy 1: Try multiple DOM selectors
+        const selectors = [
+          '.problems_header_content__title__text',
+          '.problem-title',
+          '[class*="problem"][class*="title"]',
+          'h1.problemTitle',
+          'div.problemTitle',
+          'h1'
+        ];
         
-        titleEl = document.querySelector('.problem-title');
-        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
+        for (const selector of selectors) {
+          const titleEl = document.querySelector(selector);
+          if (titleEl) {
+            const text = titleEl.textContent.trim();
+            // Validate: title should be reasonable length and not contain code
+            if (text && text.length > 3 && text.length < 200 && !text.includes('class ') && !text.includes('function ')) {
+              console.log(`[DSA Sync] Found title via selector "${selector}":`, text);
+              return text;
+            }
+          }
+        }
         
-        titleEl = document.querySelector('h1');
-        if (titleEl && titleEl.textContent.trim()) return titleEl.textContent.trim();
-        
-        // Fallback: Get from URL
+        // Strategy 2: Get from URL (most reliable for GFG)
         const match = window.location.pathname.match(/\/problems\/([^\/]+)/);
         if (match) {
-          return match[1]
+          const urlTitle = match[1]
             .split('-')
             .map(w => w.charAt(0).toUpperCase() + w.slice(1))
             .join(' ');
+          console.log('[DSA Sync] Extracted title from URL:', urlTitle);
+          return urlTitle;
         }
         
+        console.warn('[DSA Sync] Could not extract title');
         return null;
       },
       
@@ -393,7 +408,9 @@
         platform: PLATFORM,
         title: title || 'MISSING',
         titleLength: title ? title.length : 0,
+        titlePreview: title ? title.substring(0, 50) : 'N/A',
         code: code ? `${code.length} chars` : 'MISSING',
+        codePreview: code ? code.substring(0, 50) : 'N/A',
         url: window.location.href
       });
 

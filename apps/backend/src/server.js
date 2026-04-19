@@ -37,6 +37,9 @@ await fastify.register(jwt, {
 
 // Global middleware
 fastify.setErrorHandler(errorHandler);
+fastify.addHook('onRequest', async (request, reply) => {
+  logger.info(`Incoming ${request.method} request to ${request.url}`);
+});
 fastify.addHook('preHandler', rateLimit);
 
 // Routes
