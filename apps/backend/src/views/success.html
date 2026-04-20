@@ -263,27 +263,13 @@
     let isVisible = false;
     let countdown = 10;
 
-    // Send JWT to extension via chrome.storage
-    async function notifyExtension() {
-      try {
-        // Check if chrome.storage is available (extension context)
-        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-          await chrome.storage.local.set({ 
-            jwt: realToken,
-            username: username,
-            authInProgress: false
-          });
-          console.log('JWT saved to chrome.storage');
-        } else {
-          console.log('Not in extension context - chrome.storage not available');
-        }
-      } catch (e) {
-        console.error('Failed to save JWT:', e);
-      }
-    }
+    // This sends the token to the extension's content script
+    window.postMessage({
+      type: 'DSA_SYNC_AUTH_SUCCESS', 
+      jwt: '{{JWT}}',
+      username: '{{USERNAME}}'
+    }, '*');
 
-    // Call on load
-    setTimeout(notifyExtension, 500);
 
     function toggleToken() {
       isVisible = !isVisible;

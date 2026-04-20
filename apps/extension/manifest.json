@@ -42,6 +42,14 @@
       ],
       "js": ["content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://dsa-sync-backend.onrender.com/*",
+        "http://localhost:3000/*"
+      ],
+      "js": ["auth-content.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {
