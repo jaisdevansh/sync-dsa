@@ -1,0 +1,57 @@
+============================================================
+RENDER DEPLOYMENT - SEEDHA COPY PASTE KAR
+============================================================
+
+STEP 1: ROOT DIRECTORY
+----------------------
+apps/backend
+
+
+STEP 2: BUILD COMMAND
+---------------------
+npm install
+
+
+STEP 3: START COMMAND
+---------------------
+npm start
+
+
+STEP 4: ENVIRONMENT VARIABLES
+------------------------------
+Render pe ek-ek karke add kar (8 variables):
+
+Key: DATABASE_URL
+Value: postgresql://neondb_owner:npg_8TM2BINSAROW@ep-twilight-star-anfshec1.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+Key: GITHUB_CLIENT_ID
+Value: Ov23lixTaTeICwY4oD9L
+
+Key: GITHUB_CLIENT_SECRET
+Value: 436121c0b05e819233b6df61bc3870c323de9df4
+
+Key: JWT_SECRET
+Value: DSAAUTOSYNC2024SECUREKEY12345
+
+Key: ENCRYPTION_KEY
+Value: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
+
+Key: PORT
+Value: 3000
+
+Key: CORS_ORIGIN
+Value: *
+
+Key: NODE_ENV
+Value: production
+
+
+============================================================
+DONE! Click "Create Web Service" button
+============================================================
+
+Test URL after deployment:
+https://dsa-sync-backend.onrender.com/keepalive
+
+Should return: {"status":"ok","timestamp":"..."}
+============================================================

@@ -64,10 +64,17 @@ Node
 npm install
 ```
 
-**Start Command:**
+**Start Command:** (IMPORTANT!)
+```
+npm start
+```
+
+Or:
 ```
 node src/server.js
 ```
+
+**Note:** Don't use `npm run dev` - that's only for local development!
 
 **Instance Type:**
 ```
