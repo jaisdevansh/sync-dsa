@@ -2,7 +2,7 @@
 'use strict';
 
 // API Configuration
-const API_BASE_URL = 'https://dsa-sync-backend.onrender.com/api';
+const API_BASE_URL = 'https://sync-dsa-2ha0.onrender.com/api';
 
 
 console.log(`[DSA Sync] API URL: ${API_BASE_URL}`);

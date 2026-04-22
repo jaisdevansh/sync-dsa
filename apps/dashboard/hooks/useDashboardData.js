@@ -29,7 +29,7 @@ export function useDashboardData() {
   useEffect(() => {
     // 1. Handle JWT from URL (for extension deep-linking)
     if (typeof window !== 'undefined') {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://sync-dsa-2ha0.onrender.com/api';
       const params = new URLSearchParams(window.location.search);
       const urlJwt = params.get('jwt');
       if (urlJwt) {

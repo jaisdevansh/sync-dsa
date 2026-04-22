@@ -66,7 +66,7 @@ try {
   
   // Self-ping to keep Render service alive (only in production)
   if (config.nodeEnv === 'production') {
-    const BACKEND_URL = process.env.BACKEND_URL || 'https://dsa-sync-backend.onrender.com';
+    const BACKEND_URL = process.env.BACKEND_URL || 'https://sync-dsa-2ha0.onrender.com';
     
     // Ping every 25 seconds to keep service always active
     setInterval(async () => {

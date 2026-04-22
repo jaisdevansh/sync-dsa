@@ -14,7 +14,7 @@
     "https://www.codingninjas.com/*",
     "https://www.naukri.com/code360/*",
     "http://localhost:3000/*",
-    "https://dsa-sync-backend.onrender.com/*"
+    "https://sync-dsa-2ha0.onrender.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -45,7 +45,7 @@
     },
     {
       "matches": [
-        "https://dsa-sync-backend.onrender.com/*",
+        "https://sync-dsa-2ha0.onrender.com/*",
         "http://localhost:3000/*"
       ],
       "js": ["auth-content.js"],

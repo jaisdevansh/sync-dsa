@@ -51,7 +51,7 @@ DONE! Click "Create Web Service" button
 ============================================================
 
 Test URL after deployment:
-https://dsa-sync-backend.onrender.com/keepalive
+https://sync-dsa-2ha0.onrender.com/keepalive
 
 Should return: {"status":"ok","timestamp":"..."}
 ============================================================

@@ -264,11 +264,19 @@
     let countdown = 10;
 
     // This sends the token to the extension's content script
-    window.postMessage({
-      type: 'DSA_SYNC_AUTH_SUCCESS', 
-      jwt: '{{JWT}}',
-      username: '{{USERNAME}}'
-    }, '*');
+    function sendTokenToExtension() {
+      console.log('[DSA Sync] Sending token to extension...');
+      window.postMessage({
+        type: 'DSA_SYNC_AUTH_SUCCESS', 
+        jwt: '{{JWT}}',
+        username: '{{USERNAME}}'
+      }, '*');
+    }
+
+    // Fire immediately and again after 500ms and 1s to be 100% sure the extension catches it
+    sendTokenToExtension();
+    setTimeout(sendTokenToExtension, 500);
+    setTimeout(sendTokenToExtension, 1000);
 
 
     function toggleToken() {

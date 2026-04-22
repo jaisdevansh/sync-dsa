@@ -1,7 +1,7 @@
 // Popup script - UI logic
 'use strict';
 
-const API_BASE_URL = 'https://dsa-sync-backend.onrender.com/api';
+const API_BASE_URL = 'https://sync-dsa-2ha0.onrender.com/api';
 const DASHBOARD_URL = 'https://sync-dsa-dashboard.vercel.app/dashboard';
 const GITHUB_CLIENT_ID = 'Ov23lixTaTeICwY4oD9L'; // ✅ Configured!
 

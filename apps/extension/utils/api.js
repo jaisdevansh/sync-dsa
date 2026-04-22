@@ -1,6 +1,6 @@
 // Central API handler with retry logic
 const API_CONFIG = {
-  BASE_URL: 'http://localhost:3000/api',
+  BASE_URL: 'https://sync-dsa-2ha0.onrender.com/api',
   MAX_RETRIES: 3,
   RETRY_DELAY: 1000, // ms
 };
