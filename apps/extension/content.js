@@ -122,56 +122,66 @@
       },
       
       getCode: async () => {
-        // First try to extract from Monaco directly via injected script
+        // 1. Try to extract from Monaco directly via injected script (Best way)
         const monacoData = await getMonacoData();
-        if (monacoData && monacoData.code && monacoData.code.length > 10) {
+        if (monacoData && monacoData.code && monacoData.code.length > 50) {
+          console.log('[DSA Sync] Code extracted via Monaco API');
           return monacoData.code;
         }
 
-        // Try Monaco editor visible lines (fallback, might be partial)
+        // 2. Try to find the code from the submission details panel (Very reliable after success)
+        // We wait a bit to ensure the panel has rendered the full code
+        for (let i = 0; i < 3; i++) {
+          const submissionCode = document.querySelector('code[class*="language-"]') || 
+                                document.querySelector('pre code') ||
+                                document.querySelector('.submission-result-code');
+          if (submissionCode) {
+             const clone = submissionCode.cloneNode(true);
+             const lineNumbers = clone.querySelectorAll('.line-number, .lineno, .hljs-ln-numbers, [class*="line-number"], .line-index');
+             lineNumbers.forEach(n => n.remove());
+             
+             let text = clone.textContent.trim();
+             // Strip leading line numbers from each line
+             text = text.split('\n').map(line => line.replace(/^\d+\s*/, '')).join('\n').trim();
+             
+             if (text.length > 50) {
+                console.log('[DSA Sync] Code extracted via Submission Panel scraping');
+                return text;
+             }
+          }
+          // If not found or too short, wait 500ms and try again
+          await new Promise(r => setTimeout(r, 500));
+        }
+
+        // 3. Try to find any Monaco editor visible lines (Fallback, might be partial)
         let lines = document.querySelectorAll('.view-line');
         if (lines.length > 0) {
           const code = Array.from(lines)
             .map(line => line.textContent)
             .join('\n')
             .trim();
-          if (code.length > 10) return code;
+          if (code.length > 50) {
+            console.log('[DSA Sync] Code extracted via .view-line scraping (warning: might be partial)');
+            return code;
+          }
         }
         
-        // Try CodeMirror
-        lines = document.querySelectorAll('.CodeMirror-line');
-        if (lines.length > 0) {
-          const code = Array.from(lines)
-            .map(line => line.textContent)
-            .join('\n')
-            .trim();
-          if (code.length > 10) return code;
-        }
-        
-        // Check if there is a submission code block (like when viewing past submissions)
-        const submissionCode = document.querySelector('code[class*="language-"]') || document.querySelector('pre code');
-        if (submissionCode) {
-           // Clone the node to avoid modifying the actual page
-           const clone = submissionCode.cloneNode(true);
-           // Remove common line number elements
-           const lineNumbers = clone.querySelectorAll('.line-number, .lineno, .hljs-ln-numbers, [class*="line-number"]');
-           lineNumbers.forEach(n => n.remove());
-           
-           // LeetCode's raw text content might still have numbers like "1class solution" if it's rendered as plain text
-           // Let's try to grab just the code lines if they are cleanly separated
-           const codeLines = clone.querySelectorAll('.code-line, .line, [class*="source-line"]');
-           if (codeLines.length > 0) {
-             const cleanCode = Array.from(codeLines).map(el => el.textContent.replace(/^\d+\s*/, '')).join('\n').trim();
-             if (cleanCode.length > 10) return cleanCode;
-           }
-           
-           let text = clone.textContent.trim();
-           // Basic regex to strip leading line numbers from a block of text if it's misformatted
-           text = text.replace(/^[0-9]+\s+/gm, '');
-           if (text.length > 10) return text;
-        }
+        // 4. Try to find the code in localStorage (LeetCode specific cache)
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.includes('code_cache') || key.includes('editor-code')) {
+               const val = localStorage.getItem(key);
+               if (val && val.length > 100) {
+                  // This might be the code!
+                  console.log('[DSA Sync] Found potential code in localStorage');
+                  // We'd need to verify if it's the right problem, but for now just use it if desperate
+               }
+            }
+          }
+        } catch(e) {}
 
-        console.warn('[DSA Sync] Could not extract code from editor');
+        console.warn('[DSA Sync] Could not extract full code');
         return null;
       },
       

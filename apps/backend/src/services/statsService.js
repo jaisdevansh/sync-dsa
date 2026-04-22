@@ -29,10 +29,10 @@ export const statsService = {
       language: submissions.language,
       createdAt: submissions.createdAt,
       // Optimized code fetching (only latest 50)
-      code: sql`case when ${submissions.createdAt} >= (
-          SELECT created_at FROM ${submissions} 
+      code: sql`case when ${submissions.id} in (
+          SELECT id FROM ${submissions} 
           WHERE user_id = ${userId} 
-          ORDER BY created_at DESC LIMIT 1 OFFSET 49
+          ORDER BY created_at DESC LIMIT 50
       ) then ${submissions.code} else null end`
     })
     .from(submissions)
