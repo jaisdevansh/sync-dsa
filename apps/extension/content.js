@@ -8,9 +8,10 @@
   let debounceTimer = null;
   let observer = null;
   let isProcessing = false; // Flag to prevent concurrent processing
+  let submitClickedTime = 0; // Track when submit was clicked
   
   const DEBOUNCE_DELAY = 2000; // 2 seconds
-  const DUPLICATE_WINDOW = 30000; // 30 seconds - ignore duplicates within this window
+  const DUPLICATE_WINDOW = 60000; // 60 seconds - ignore duplicates within this window
   const PLATFORM = detectPlatform();
 
   // Platform detection
@@ -51,9 +52,19 @@
         const successIcon = document.querySelector('[class*="success"]');
         if (successIcon && successIcon.textContent.toLowerCase().includes('accepted')) return true;
         
-        // Alternative: Check page text
+        // Look for the "Accepted" text in the new UI submission panel
+        const submissionStatus = document.querySelector('.text-green-s.dark\\:text-dark-green-s');
+        if (submissionStatus && submissionStatus.textContent.toLowerCase().includes('accepted')) return true;
+
+        // Check for specific text that only appears on submission success
         const pageText = document.body.textContent.toLowerCase();
-        return pageText.includes('accepted') && pageText.includes('runtime');
+        if (pageText.includes('accepted') && (pageText.includes('beats') || pageText.includes('runtime'))) {
+          // Ensure it's in a context of a recent submission
+          const detailLink = document.querySelector('a[href*="/submissions/detail/"]');
+          if (detailLink) return true;
+        }
+
+        return false;
       },
       
       getTitle: () => {
@@ -110,15 +121,21 @@
         return 'medium';
       },
       
-      getCode: () => {
-        // Try Monaco editor (most common)
+      getCode: async () => {
+        // First try to extract from Monaco directly via injected script
+        const monacoData = await getMonacoData();
+        if (monacoData && monacoData.code && monacoData.code.length > 10) {
+          return monacoData.code;
+        }
+
+        // Try Monaco editor visible lines (fallback, might be partial)
         let lines = document.querySelectorAll('.view-line');
         if (lines.length > 0) {
           const code = Array.from(lines)
             .map(line => line.textContent)
             .join('\n')
             .trim();
-          if (code.length > 10) return code; // Ensure it's not empty
+          if (code.length > 10) return code;
         }
         
         // Try CodeMirror
@@ -131,35 +148,77 @@
           if (code.length > 10) return code;
         }
         
-        // Try textarea
-        const textarea = document.querySelector('textarea[class*="code"]');
-        if (textarea && textarea.value.trim().length > 10) return textarea.value.trim();
-        
-        // Try any textarea
-        const anyTextarea = document.querySelector('textarea');
-        if (anyTextarea && anyTextarea.value.trim().length > 10) return anyTextarea.value.trim();
-        
-        // Try pre or code tags
-        const codeBlock = document.querySelector('pre code') || document.querySelector('pre');
-        if (codeBlock && codeBlock.textContent.trim().length > 10) return codeBlock.textContent.trim();
-        
+        // Check if there is a submission code block (like when viewing past submissions)
+        const submissionCode = document.querySelector('code[class*="language-"]') || document.querySelector('pre code');
+        if (submissionCode) {
+           // Clone the node to avoid modifying the actual page
+           const clone = submissionCode.cloneNode(true);
+           // Remove common line number elements
+           const lineNumbers = clone.querySelectorAll('.line-number, .lineno, .hljs-ln-numbers, [class*="line-number"]');
+           lineNumbers.forEach(n => n.remove());
+           
+           // LeetCode's raw text content might still have numbers like "1class solution" if it's rendered as plain text
+           // Let's try to grab just the code lines if they are cleanly separated
+           const codeLines = clone.querySelectorAll('.code-line, .line, [class*="source-line"]');
+           if (codeLines.length > 0) {
+             const cleanCode = Array.from(codeLines).map(el => el.textContent.replace(/^\d+\s*/, '')).join('\n').trim();
+             if (cleanCode.length > 10) return cleanCode;
+           }
+           
+           let text = clone.textContent.trim();
+           // Basic regex to strip leading line numbers from a block of text if it's misformatted
+           text = text.replace(/^[0-9]+\s+/gm, '');
+           if (text.length > 10) return text;
+        }
+
         console.warn('[DSA Sync] Could not extract code from editor');
         return null;
       },
       
-      getLanguage: () => {
+      getLanguage: async () => {
+        // Try to get from Monaco directly
+        const monacoData = await getMonacoData();
+        if (monacoData && monacoData.language) {
+          let l = monacoData.language.toLowerCase();
+          if (l === 'python3') return 'python';
+          if (l === 'c++') return 'cpp';
+          return l;
+        }
+
+        // Try local storage (Very reliable for LeetCode)
+        try {
+          const lang = window.localStorage.getItem('global_lang');
+          if (lang) {
+             let l = lang.toLowerCase();
+             if (l === 'python3') return 'python';
+             if (l === 'c++') return 'cpp';
+             return l;
+          }
+        } catch(e) {}
+
+        // Look for code block class in submission view
+        const codeBlock = document.querySelector('code[class*="language-"]');
+        if (codeBlock) {
+           const match = codeBlock.className.match(/language-([a-z+]+)/);
+           if (match) {
+             let l = match[1].toLowerCase();
+             if (l === 'python3') return 'python';
+             if (l === 'c++') return 'cpp';
+             return l;
+           }
+        }
+
         // Try button text
-        let langBtn = document.querySelector('[id^="headlessui-listbox-button"]');
+        let langBtn = document.querySelector('button[id^="headlessui-listbox-button"]');
         if (langBtn) {
           const lang = langBtn.textContent.trim().toLowerCase();
-          if (lang) return lang;
+          if (lang && lang.length < 20) return lang;
         }
         
-        // Try dropdown
-        langBtn = document.querySelector('[class*="lang"]');
-        if (langBtn) {
-          const lang = langBtn.textContent.trim().toLowerCase();
-          if (lang) return lang;
+        let langFallback = document.querySelector('button[class*="lang"]');
+        if (langFallback) {
+          const lang = langFallback.textContent.trim().toLowerCase();
+          if (lang && lang.length < 20) return lang;
         }
         
         // Default
@@ -258,7 +317,7 @@
         return 'medium';
       },
       
-      getCode: () => {
+      getCode: async () => {
         // Try Ace editor
         let lines = document.querySelectorAll('.ace_line');
         if (lines.length > 0) {
@@ -287,7 +346,7 @@
         return null;
       },
       
-      getLanguage: () => {
+      getLanguage: async () => {
         // Try language dropdown
         let langEl = document.querySelector('.problems_header_language__dropdown');
         if (langEl && langEl.textContent.trim()) {
@@ -355,7 +414,7 @@
         return 'medium';
       },
 
-      getCode: () => {
+      getCode: async () => {
         // CodingNinjas uses Monaco/Studio editor
         const lines = document.querySelectorAll('.view-lines .view-line');
         if (lines.length > 0) {
@@ -369,7 +428,7 @@
         return null;
       },
 
-      getLanguage: () => {
+      getLanguage: async () => {
         const langEl = document.querySelector('.language-select .mat-select-value-text') ||
                        document.querySelector('.classroom-language-select .mat-select-value-text');
         if (langEl) {
@@ -385,8 +444,91 @@
     },
   };
 
+  // Inject script to extract Monaco Editor data safely
+  function getMonacoData() {
+    return new Promise((resolve) => {
+      if (PLATFORM !== 'leetcode') {
+        resolve(null);
+        return;
+      }
+      
+      const id = 'dsa-sync-monaco-' + Date.now();
+      const script = document.createElement('script');
+      script.textContent = `
+        (function() {
+          try {
+            let code = null;
+            let language = null;
+            if (window.monaco && window.monaco.editor) {
+              const editors = window.monaco.editor.getEditors();
+              if (editors && editors.length > 0) {
+                // Find the editor with the most code (avoids empty/stale hidden editors)
+                let bestModel = null;
+                let maxLength = -1;
+                for (const editor of editors) {
+                  const model = editor.getModel();
+                  if (model) {
+                    const val = model.getValue();
+                    if (val.length > maxLength) {
+                      maxLength = val.length;
+                      bestModel = model;
+                    }
+                  }
+                }
+                
+                if (bestModel) {
+                  code = bestModel.getValue();
+                  language = bestModel.getLanguageId();
+                }
+              }
+              
+              // Fallback to getModels if editors[] is empty for some reason
+              if (!code) {
+                const models = window.monaco.editor.getModels();
+                if (models.length > 0) {
+                  let bestModel = models[0];
+                  let maxLength = -1;
+                  for (const m of models) {
+                     const uri = m.uri.toString();
+                     if (!uri.includes('node_modules') && !uri.includes('lib.d.ts')) {
+                        const val = m.getValue();
+                        if (val.length > maxLength) {
+                           maxLength = val.length;
+                           bestModel = m;
+                        }
+                     }
+                  }
+                  code = bestModel.getValue();
+                  language = bestModel.getLanguageId();
+                }
+              }
+            }
+            window.dispatchEvent(new CustomEvent('${id}', { detail: { code, language } }));
+          } catch (e) {
+            window.dispatchEvent(new CustomEvent('${id}', { detail: null }));
+          }
+        })();
+      `;
+      
+      const listener = (e) => {
+        window.removeEventListener(id, listener);
+        script.remove();
+        resolve(e.detail);
+      };
+      
+      window.addEventListener(id, listener);
+      document.body.appendChild(script);
+      
+      setTimeout(() => {
+        window.removeEventListener(id, listener);
+        if (script.parentNode) script.remove();
+        resolve(null);
+      }, 1000);
+    });
+  }
+
   // Extract submission data
-  function extractSubmissionData() {
+  async function extractSubmissionData() {
     if (!PLATFORM || !extractors[PLATFORM]) {
       console.error('[DSA Sync] Unknown platform');
       return null;
@@ -402,7 +544,8 @@
       }
 
       const title = extractor.getTitle();
-      const code = extractor.getCode();
+      const code = await extractor.getCode();
+      const language = await extractor.getLanguage();
 
       console.log('[DSA Sync] Extraction attempt:', { 
         platform: PLATFORM,
@@ -411,6 +554,7 @@
         titlePreview: title ? title.substring(0, 50) : 'N/A',
         code: code ? `${code.length} chars` : 'MISSING',
         codePreview: code ? code.substring(0, 50) : 'N/A',
+        language: language,
         url: window.location.href
       });
 
@@ -427,7 +571,7 @@
         title,
         difficulty: extractor.getDifficulty(),
         code,
-        language: extractor.getLanguage(),
+        language: language,
         platform: PLATFORM,
       };
 
@@ -472,10 +616,11 @@
     
     clearTimeout(debounceTimer);
     
-    debounceTimer = setTimeout(() => {
-      const data = extractSubmissionData();
+    debounceTimer = setTimeout(async () => {
+      const data = await extractSubmissionData();
       
       if (data) {
+        submitClickedTime = 0; // Reset to prevent duplicate syncs from navigation
         isProcessing = true; // Set flag
         console.log('[DSA Sync] Submission detected:', data.title);
         
@@ -624,17 +769,37 @@
       const hasSubmissionResult = mutations.some(mutation => {
         return Array.from(mutation.addedNodes).some(node => {
           if (node.nodeType !== 1) return false;
-          const text = node.textContent?.toLowerCase() || '';
           
-          // LeetCode patterns
-          if (text.includes('accepted') && text.includes('runtime')) return true;
-          if (text.includes('accepted') || text.includes('success')) return true;
+          if (PLATFORM === 'leetcode') {
+            // ONLY trigger sync if the user ACTUALLY clicked the submit button recently
+            if (Date.now() - submitClickedTime > 60000) {
+               return false;
+            }
+
+            const text = node.textContent?.toLowerCase() || '';
+            
+            // Only trigger if a specific submission result container is added
+            if (node.getAttribute && node.getAttribute('data-e2e-locator') === 'submission-result') return true;
+            if (node.querySelector && node.querySelector('[data-e2e-locator="submission-result"]')) return true;
+            
+            // Or if we see accepted and the submit button was clicked recently
+            if (text.includes('accepted') && (node.classList?.contains('text-green-s') || text.includes('runtime'))) {
+               return true;
+            }
+            return false;
+          }
+
+          const text = node.textContent?.toLowerCase() || '';
           
           // GFG patterns
           if (text.includes('problem solved successfully')) return true;
           if (text.includes('all test cases passed')) return true;
           if (text.includes('correct answer')) return true;
           
+          // CodingNinjas patterns
+          if (text.includes('correct answer') || text.includes('problem solved successfully')) return true;
+          if (node.classList && (node.classList.contains('status-correct') || node.classList.contains('success-icon'))) return true;
+
           return false;
         });
       });
@@ -650,26 +815,36 @@
       subtree: true,
     });
     
-    // For GFG: Also listen for button clicks (Submit button)
-    if (PLATFORM === 'gfg') {
-      console.log('[DSA Sync] Setting up GFG submit button listener');
+    // Listen for button clicks (Submit button) for all platforms
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      const btn = target.closest('button');
       
-      // Listen for clicks on submit button
-      document.addEventListener('click', (e) => {
-        const target = e.target;
-        if (target && (
-          target.textContent?.includes('Submit') || 
-          target.classList?.contains('submit') ||
-          target.id?.includes('submit')
-        )) {
-          console.log('[DSA Sync] Submit button clicked, will check for success in 3 seconds');
-          // Wait for submission to complete
-          setTimeout(() => {
-            handleSubmission();
-          }, 3000);
+      if (btn) {
+        const text = btn.textContent?.toLowerCase() || '';
+        const id = btn.id?.toLowerCase() || '';
+        const className = btn.className?.toLowerCase() || '';
+        const locator = btn.getAttribute('data-e2e-locator') || '';
+
+        // Check if it's a submit button
+        if (
+          text.includes('submit') || 
+          className.includes('submit') || 
+          id.includes('submit') ||
+          locator === 'console-submit-button'
+        ) {
+          console.log('[DSA Sync] Submit button clicked, waiting for success state...');
+          submitClickedTime = Date.now();
+          
+          // For GFG, we can manually check after a timeout since their DOM updates might not trigger observer perfectly
+          if (PLATFORM === 'gfg') {
+            setTimeout(() => {
+              handleSubmission();
+            }, 3000);
+          }
         }
-      }, true);
-    }
+      }
+    }, true);
   }
 
   // Cleanup on page unload
