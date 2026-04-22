@@ -129,7 +129,32 @@
           return monacoData.code;
         }
 
-        // 2. Try to find the code from the submission details panel (Very reliable after success)
+        // 2. Try to get the code from LeetCode's localStorage cache (Very reliable for full code)
+        try {
+          // Problem ID is usually in the URL or page data. Let's look for it.
+          const problemIdMatch = document.body.innerHTML.match(/"questionId":"(\d+)"/) || 
+                                document.body.innerHTML.match(/questionId:\s*'(\d+)'/);
+          const problemId = problemIdMatch ? problemIdMatch[1] : null;
+          
+          if (problemId) {
+            console.log('[DSA Sync] Searching localStorage for problem ID:', problemId);
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              // LeetCode uses keys like: 123_cpp_code_cache
+              if (key.includes(problemId) && (key.includes('code_cache') || key.includes('code-cache'))) {
+                const cachedCode = localStorage.getItem(key);
+                if (cachedCode && cachedCode.length > 50) {
+                  console.log('[DSA Sync] Found full code in localStorage cache!');
+                  return cachedCode;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[DSA Sync] LocalStorage check failed:', e);
+        }
+
+        // 3. Try to find the code from the submission details panel
         // We wait a bit to ensure the panel has rendered the full code
         for (let i = 0; i < 3; i++) {
           const submissionCode = document.querySelector('code[class*="language-"]') || 
@@ -141,7 +166,6 @@
              lineNumbers.forEach(n => n.remove());
              
              let text = clone.textContent.trim();
-             // Strip leading line numbers from each line
              text = text.split('\n').map(line => line.replace(/^\d+\s*/, '')).join('\n').trim();
              
              if (text.length > 50) {
@@ -149,11 +173,10 @@
                 return text;
              }
           }
-          // If not found or too short, wait 500ms and try again
           await new Promise(r => setTimeout(r, 500));
         }
 
-        // 3. Try to find any Monaco editor visible lines (Fallback, might be partial)
+        // 4. Last resort: Scrape visible lines (warning: might be partial)
         let lines = document.querySelectorAll('.view-line');
         if (lines.length > 0) {
           const code = Array.from(lines)
@@ -161,25 +184,9 @@
             .join('\n')
             .trim();
           if (code.length > 50) {
-            console.log('[DSA Sync] Code extracted via .view-line scraping (warning: might be partial)');
             return code;
           }
         }
-        
-        // 4. Try to find the code in localStorage (LeetCode specific cache)
-        try {
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.includes('code_cache') || key.includes('editor-code')) {
-               const val = localStorage.getItem(key);
-               if (val && val.length > 100) {
-                  // This might be the code!
-                  console.log('[DSA Sync] Found potential code in localStorage');
-                  // We'd need to verify if it's the right problem, but for now just use it if desperate
-               }
-            }
-          }
-        } catch(e) {}
 
         console.warn('[DSA Sync] Could not extract full code');
         return null;
