@@ -140,12 +140,35 @@
             console.log('[DSA Sync] Searching localStorage for problem ID:', problemId);
             for (let i = 0; i < localStorage.length; i++) {
               const key = localStorage.key(i);
+              
               // LeetCode uses keys like: 123_cpp_code_cache
-              if (key.includes(problemId) && (key.includes('code_cache') || key.includes('code-cache'))) {
-                const cachedCode = localStorage.getItem(key);
-                if (cachedCode && cachedCode.length > 50) {
-                  console.log('[DSA Sync] Found full code in localStorage cache!');
-                  return cachedCode;
+              // We must avoid keys like: 123_code_cache_state or others that are not the actual code
+              if (key.includes(problemId) && 
+                  (key.includes('code_cache') || key.includes('code-cache')) && 
+                  !key.includes('state') && 
+                  !key.includes('history')) {
+                
+                const rawValue = localStorage.getItem(key);
+                if (!rawValue) continue;
+
+                try {
+                  const parsed = JSON.parse(rawValue);
+                  // Case 1: Value is an object with a 'code' property (Common)
+                  if (parsed && typeof parsed === 'object' && parsed.code && parsed.code.length > 50) {
+                    console.log('[DSA Sync] Found full code in localStorage (parsed object)!');
+                    return parsed.code;
+                  }
+                  // Case 2: Value is just the string (Old/Alternative)
+                  if (typeof parsed === 'string' && parsed.length > 50) {
+                    console.log('[DSA Sync] Found full code in localStorage (parsed string)!');
+                    return parsed;
+                  }
+                } catch (e) {
+                  // Case 3: Value is not JSON, use raw if it's long enough
+                  if (rawValue.length > 50 && !rawValue.trim().startsWith('{') && !rawValue.trim().startsWith('[')) {
+                    console.log('[DSA Sync] Found full code in localStorage (raw string)!');
+                    return rawValue;
+                  }
                 }
               }
             }
@@ -544,6 +567,37 @@
     });
   }
 
+  // Validate if extracted content is actually code and not junk/metadata
+  function isValidCode(code) {
+    if (!code || typeof code !== 'string') return false;
+    if (code.length < 30) return false;
+    
+    const trimmed = code.trim();
+    
+    // If it looks like a JSON object or array, it's likely wrong
+    // LeetCode code usually starts with: class, function, var, let, const, #include, import, def, etc.
+    if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        // If it's a plain array or object without a 'code' field, it's definitely junk
+        if (Array.isArray(parsed)) return false;
+        if (typeof parsed === 'object' && !parsed.code) return false;
+      } catch (e) {
+        // Not valid JSON, might be actual code
+      }
+    }
+    
+    // Check for common patterns that suggest it's NOT code (like those huge number arrays)
+    if (trimmed.includes('[') && trimmed.includes(',') && !trimmed.includes('function') && !trimmed.includes('class')) {
+       // Heuristic: if it's mostly numbers and brackets
+       const digitCount = (trimmed.match(/\d/g) || []).length;
+       const alphaCount = (trimmed.match(/[a-zA-Z]/g) || []).length;
+       if (digitCount > alphaCount * 2) return false;
+    }
+
+    return true;
+  }
+
   // Extract submission data
   async function extractSubmissionData() {
     if (!PLATFORM || !extractors[PLATFORM]) {
@@ -576,10 +630,10 @@
       });
 
       // Validate required fields
-      if (!title || !code) {
-        console.warn('[DSA Sync] Missing required fields - will retry on next DOM change', { 
+      if (!title || !isValidCode(code)) {
+        console.warn('[DSA Sync] Missing or invalid fields - will retry', { 
           title: !!title, 
-          code: !!code 
+          codeValid: isValidCode(code)
         });
         return null;
       }
