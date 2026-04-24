@@ -79,7 +79,7 @@ export const statsService = {
         [platformKey]: 1,
         [diffKey]: 1,
         streak: 1,
-        lastSolvedDate: new Date(),
+        lastSolvedDate: sql`CURRENT_TIMESTAMP`,
       })
       .onConflictDoUpdate({
         target: stats.userId,
@@ -87,7 +87,20 @@ export const statsService = {
           totalSolved: sql`${stats.totalSolved} + 1`,
           [platformKey]: sql`${stats[platformKey]} + 1`,
           [diffKey]: sql`${stats[diffKey]} + 1`,
-          lastSolvedDate: new Date(),
+          lastSolvedDate: sql`CURRENT_TIMESTAMP`,
+          // PostgreSQL streak logic:
+          // - Solved TODAY already  → keep current streak (no double-count)
+          // - Solved YESTERDAY      → extend streak by 1
+          // - Gap of 2+ days        → reset to 1
+          streak: sql`
+            CASE
+              WHEN ${stats.lastSolvedDate}::date = CURRENT_DATE
+                THEN ${stats.streak}
+              WHEN ${stats.lastSolvedDate}::date = CURRENT_DATE - INTERVAL '1 day'
+                THEN ${stats.streak} + 1
+              ELSE 1
+            END
+          `,
         },
       });
   }
