@@ -17,11 +17,20 @@ const cardConfigs = [
     key: 'streak',
     label: 'Day Streak',
     icon: '🔥',
-    gradient: 'linear-gradient(135deg, #f59e0b, #f97316)',
-    glow: 'rgba(245,158,11,0.25)',
-    textAccent: '#fcd34d',
+    gradient: 'linear-gradient(135deg, #f97316, #ea580c)',
+    glow: 'rgba(249,115,22,0.25)',
+    textAccent: '#fdba74',
     suffix: ' days',
     isStreak: true,
+  },
+  {
+    key: 'easyCount',
+    label: 'Easy',
+    icon: '🌱',
+    gradient: 'linear-gradient(135deg, #10b981, #34d399)',
+    glow: 'rgba(16,185,129,0.2)',
+    textAccent: '#6ee7b7',
+    getMax: (s) => Math.max(s?.totalSolved || 0, 1),
   },
   {
     key: 'mediumCount',
@@ -132,7 +141,7 @@ const StatsCard = memo(function StatsCard({ stats }) {
 
   return (
     <section>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
         {cardConfigs.map(cfg => (
           <SingleCard key={cfg.key} config={cfg} stats={stats} />
         ))}
