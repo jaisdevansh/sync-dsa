@@ -348,11 +348,20 @@
       },
       
       getDifficulty: () => {
+        // 1. Try to match the exact text "Difficulty: [Level]" on the page
+        const diffMatch = document.body.textContent.match(/Difficulty:\s*(Basic|School|Easy|Medium|Hard)/i);
+        if (diffMatch) {
+          const diff = diffMatch[1].toLowerCase();
+          if (diff === 'basic' || diff === 'school') return 'easy';
+          return diff;
+        }
+
+        // 2. Fallback to DOM elements
         const diffEl = document.querySelector('.problems_header_content__title__difficulty') ||
                        document.querySelector('[class*="difficulty"]');
         if (!diffEl) return 'medium';
         const text = diffEl.textContent.toLowerCase();
-        if (text.includes('easy')) return 'easy';
+        if (text.includes('easy') || text.includes('basic') || text.includes('school')) return 'easy';
         if (text.includes('hard')) return 'hard';
         return 'medium';
       },
@@ -774,8 +783,59 @@
     }, DEBOUNCE_DELAY);
   }
 
+  // Play a simple notification sound
+  function playNotificationSound(type) {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      if (type === 'success') {
+        // A pleasant "ding" sound
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+        gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+      } else if (type === 'error') {
+        // A low warning "bloop" sound
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+      } else {
+        // Standard info sound
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.2);
+      }
+    } catch (e) {
+      console.warn('[DSA Sync] Audio play failed:', e);
+    }
+  }
+
   // Show toast notification
   function showToast(message, type = 'info') {
+    // Play sound based on type
+    playNotificationSound(type);
+
     // Remove existing toast
     const existing = document.getElementById('dsa-sync-toast');
     if (existing) existing.remove();

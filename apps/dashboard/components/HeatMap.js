@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, useEffect, useRef } from 'react';
 
 const LEVELS = [
   { min: 0, max: 0, bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.06)' },
@@ -56,7 +56,14 @@ const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 const HeatMap = memo(function HeatMap({ submissions = [] }) {
   const [tooltip, setTooltip] = useState(null);
+  const scrollRef = useRef(null);
   const weeks = useMemo(() => buildGrid(submissions), [submissions]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, [weeks]);
 
   const totalThisYear = useMemo(() => {
     const yearStart = new Date().getFullYear();
@@ -95,7 +102,7 @@ const HeatMap = memo(function HeatMap({ submissions = [] }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-2">
+      <div className="overflow-x-auto pb-2" ref={scrollRef}>
         <div className="inline-flex flex-col gap-1" style={{ minWidth: 'max-content' }}>
           {/* Month labels */}
           <div className="flex gap-1 pl-8">

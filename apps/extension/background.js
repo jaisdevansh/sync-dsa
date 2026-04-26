@@ -26,10 +26,36 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SUBMISSION_DETECTED') {
     handleSubmission(message.data)
-      .then(result => sendResponse({ success: true, data: result }))
+      .then(result => {
+        sendResponse({ success: true, data: result });
+        
+        let notifMessage = '✅ Successfully synced to GitHub!';
+        let notifTitle = 'DSA Auto Sync';
+        
+        if (result?.message === 'Already submitted') {
+          notifMessage = 'ℹ️ Already submitted';
+        } else if (result && result.githubSynced === false) {
+          notifTitle = 'DSA Auto Sync Warning';
+          notifMessage = `⚠️ Saved to DB, but GitHub failed: ${result.error || ''}`;
+        }
+        
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon128.png',
+          title: notifTitle,
+          message: notifMessage
+        });
+      })
       .catch(error => {
         console.error('[DSA Sync] Submission failed:', error);
         sendResponse({ success: false, error: error.message });
+        
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon128.png',
+          title: 'DSA Auto Sync Error',
+          message: `⚠️ Sync failed: ${error.message}`
+        });
       });
     
     // Keep channel open for async response
